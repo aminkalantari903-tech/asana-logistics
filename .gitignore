@@ -1,0 +1,9 @@
+.env
+data/
+node_modules/
+*.zip
+# rebuilt from bundle/ by scripts/restore.js
+public/index.html
+public/fonts/*.woff2
+public/icons/*.png
+public/favicon.ico

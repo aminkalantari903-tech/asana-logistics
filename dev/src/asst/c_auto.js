@@ -1,0 +1,58 @@
+/* ---------- autopilot: AI agents take the controls and run the forwarding workflow for the selected shipment ---------- */
+const APA={orc:['🧭','هماهنگ‌کنندهٔ خودکار'],route:['🗺️','عامل مسیر و بهینه‌سازی'],cost:['💲','عامل قیمت‌گذاری و هزینه'],load:['📦','عامل بارگیری'],cus:['🛃','عامل گمرک و تعرفه'],risk:['🛡️','عامل ریسک و انطباق'],buy:['🧾','عامل استعلام و خرید'],ops:['🗂️','عامل عملیات و اسناد'],sales:['💼','عامل فروش و پرونده']};
+const APIC={orc:'<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',route:'<circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h8.5a3.5 3.5 0 0 0 0-7h-9a3.5 3.5 0 0 1 0-7H16"/>',cost:'<path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.6 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3"/>',load:'<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',cus:'<path d="M3 21h18M5 21V10M19 21V10M9.5 21V10M14.5 21V10M2 10l10-6 10 6"/>',risk:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',buy:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',ops:'<path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/>',sales:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/>'};
+const apIc=(ag,w=14)=>asSvg(APIC[ag]||APIC.orc,w);
+const APS=[['intake','دریافت و تحلیل محموله','orc'],['route','بهینه‌سازی مسیر','route'],['live','هزینهٔ حمل با دادهٔ روز','cost'],['landed','هزینهٔ کامل زنجیره','cost'],['load','چیدمان کانتینر','load'],['tariff','تعرفه، حقوق ورودی و مجوزها','cus'],['ins','بیمهٔ باربری','risk'],['sanc','غربالگری تحریم طرف‌ها','risk'],['risk','ماتریس ریسک مسیر','risk'],['dd','دموراژ و انبارداری','ops'],['dom','حمل داخلی تا مقصد','cost'],['rfq','پیش‌نویس استعلام از فورواردرها','buy'],['job','تشکیل پرونده و سود و زیان','sales',1],['quote','پیشنهاد قیمت به مشتری','sales',1],['bkg','درخواست رزرو و کات‌آف‌ها','ops',1],['docs','تهیهٔ فاکتور تجاری','ops'],['cus','اظهارنامهٔ گمرکی','cus',1],['track','ثبت محموله برای رهگیری','ops',1],['final','جمع‌بندی و گزارش','orc']];
+const APHS={machinery:'84798990',electronics:'85176200',food:'21069090',pharma:'30049000',chemicals:'38249990',textile:'52083900',auto:'87089900',steel:'72085200',polymer:'39011000'};
+const APCF={general:'کالای عمومی',machinery:'ماشین‌آلات و قطعات',electronics:'الکترونیک',food:'مواد غذایی',pharma:'دارو و تجهیزات پزشکی',chemicals:'مواد شیمیایی',textile:'نساجی',auto:'قطعات خودرو',steel:'فولاد',polymer:'پلیمر'};
+const AP={run:false,pause:false,stop:false,skip:false,k:1,st:{},vals:[],log:[],cur:-1,t0:0,S:null,opts:Object.assign({speed:'normal',records:true,server:true,stepMode:false,cust:'',shp:'',cne:'',desc:'',hs:'',margin:12,off:[]},LSG('ifa-ap-opt',{})),dismiss:''};
+const APSTOP={ap:'stop'},APSKIP={ap:'skip'};
+const apSleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function apW(ms){const t=ms*AP.k;let e=0;while(e<t||AP.pause){if(AP.stop)throw APSTOP;if(AP.skip){AP.skip=false;throw APSKIP}await apSleep(60);if(!AP.pause)e+=60}}
+const apRoot=()=>(wrap&&$('.sx-body',wrap))||document;
+const apVis=e=>!!(e&&e.isConnected&&e.getClientRects().length);
+function apQ(sel,o={}){const L=[...(o.root||apRoot()).querySelectorAll(sel)].filter(apVis);return o.txt?L.find(e=>e.textContent.includes(o.txt)):L[0]}
+async function apFind(sel,o={}){for(let i=0;i<30;i++){const e=apQ(sel,o);if(e)return e;await apW(70)}return null}
+async function apBtn(txt,label){const b=await apFind('button',{txt});return b?apClick(b,label):false}
+const apSetV=(el,v)=>{const P=el.tagName==='SELECT'?HTMLSelectElement.prototype:el.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;Object.getOwnPropertyDescriptor(P,'value').set.call(el,v)};
+async function apSeg(v){const b=await apFind(`.sx-seg button[data-v="${v}"]`);return b?apClick(b):false}
+const apNum=n=>fa(Math.round(+n||0).toLocaleString('en-US'));
+const apRial=n=>{n=+n||0;return n>=1e10?fa((n/1e10).toFixed(2))+' میلیارد تومان':n>=1e7?fa((n/1e7).toFixed(1))+' میلیون تومان':apNum(n/10)+' تومان'};
+const apPct=x=>fa(Math.round((+x||0)*100))+'٪';
+const apNode=id=>{const C=asCtxSafe();return C&&C.G.nodeById[id]};
+/* ---- v15.11 motion primitives: arc-path cursor with trail, morphing spotlight ring, double ripple, typing glow, page wipe, flying value chips ---- */
+const apRM=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+function apCur(){let c=$('.ap-cur');if(!c){c=document.createElement('div');c.className='ap-cur';c.innerHTML='<svg viewBox="0 0 24 24"><path d="M4 2.5l15.5 8.6-6.6 1.9-3.2 6.6z" fill="var(--ivory)" stroke="var(--ink)" stroke-width="1.5" stroke-linejoin="round"/></svg><span class="ap-cur-l"><i></i><span></span></span>';document.body.appendChild(c);
+ AP.cx=innerWidth/2;AP.cy=innerHeight/2;c.style.transform=`translate(${AP.cx}px,${AP.cy}px)`;c.animate([{opacity:0,transform:`translate(${AP.cx}px,${AP.cy+30}px) scale(.5)`},{opacity:1,transform:`translate(${AP.cx}px,${AP.cy}px)`}],{duration:450,easing:'cubic-bezier(.34,1.56,.64,1)'})}return c}
+function apLabel(t){const c=apCur(),l=$('.ap-cur-l',c),a=APA[AP.ag]||APA.orc;const s=$('span',l),i=$('i',l);if(s.textContent===t&&i.dataset.ag===AP.ag)return;i.dataset.ag=AP.ag;i.innerHTML=apIc(AP.ag,13);s.textContent=t;l.classList.remove('chg');void l.offsetWidth;l.classList.add('chg')}
+async function apGlide(x,y){const c=apCur();const x0=AP.cx??innerWidth/2,y0=AP.cy??innerHeight/2;const dist=Math.hypot(x-x0,y-y0);AP.cx=x;AP.cy=y;
+ if(dist<3||apRM()){c.style.transform=`translate(${x}px,${y}px)`;return}
+ const D=Math.round(Math.min(950,Math.max(320,dist*.9))*AP.k);const bend=Math.min(120,dist*.22)*(x>x0?-1:1);const mx=(x0+x)/2+(y-y0)/dist*bend,my=(y0+y)/2-(x-x0)/dist*bend;
+ const K=[];for(let i=0;i<=12;i++){const t=i/12,u=1-t;K.push({transform:`translate(${u*u*x0+2*u*t*mx+t*t*x}px,${u*u*y0+2*u*t*my+t*t*y}px)`})}
+ const an=c.animate(K,{duration:D,easing:'cubic-bezier(.45,.05,.25,1)',fill:'forwards'});let n=0;const tr=setInterval(()=>{if(++n%2)return;const m=new DOMMatrix(getComputedStyle(c).transform);const d=document.createElement('i');d.className='ap-tr';d.style.left=m.e+3+'px';d.style.top=m.f+3+'px';document.body.appendChild(d);setTimeout(()=>d.remove(),600)},28);
+ try{await an.finished}catch(e){}clearInterval(tr);c.style.transform=`translate(${x}px,${y}px)`;an.cancel()}
+function apRing(el,spot){let g=$('.ap-ring');if(!g){g=document.createElement('div');g.className='ap-ring';document.body.appendChild(g);const r0=el.getBoundingClientRect();Object.assign(g.style,{left:r0.left+r0.width/2+'px',top:r0.top+r0.height/2+'px',width:'0px',height:'0px'});void g.offsetWidth}
+ const r=el.getBoundingClientRect();AP.lastRect={x:r.left+r.width/2,y:r.top+r.height/2,t:Date.now()};Object.assign(g.style,{left:r.left-5+'px',top:r.top-5+'px',width:r.width+10+'px',height:r.height+10+'px'});g.classList.add('on');g.classList.toggle('spot',!!spot);
+ clearTimeout(g._t);g._t=setTimeout(()=>{g.classList.remove('on','spot')},1100+1300*AP.k)}
+function apRip(el){const r=el.getBoundingClientRect();const x=AP.cx!=null&&AP.cx>=r.left-4&&AP.cx<=r.right+4?AP.cx:r.left+Math.min(r.width/2,40),y=AP.cy!=null&&AP.cy>=r.top-4&&AP.cy<=r.bottom+4?AP.cy:r.top+r.height/2;
+ for(const k of ['','b']){const d=document.createElement('div');d.className='ap-rip '+k;d.style.left=x+'px';d.style.top=y+'px';document.body.appendChild(d);setTimeout(()=>d.remove(),1000)}}
+async function apMove(el,label,spot){if(!apVis(el))return false;const r0=el.getBoundingClientRect();if(r0.top<70||r0.bottom>innerHeight-20){el.scrollIntoView({block:'center',behavior:apRM()?'auto':'smooth'});await apW(380)}else await apW(80);const r=el.getBoundingClientRect();
+ const x=Math.max(4,Math.min(innerWidth-30,r.left+Math.min(r.width-8,Math.max(10,r.width*.35)))),y=Math.max(4,r.top+Math.min(r.height-4,r.height*.62));apLabel(label||(APA[AP.ag]||APA.orc)[1]);apRing(el,spot);await apGlide(x,y);await apW(160);return true}
+async function apClick(el,label){if(typeof el==='string')el=await apFind(el);if(!el)return false;await apMove(el,label);const c=apCur();c.classList.add('down');await apW(140);c.classList.remove('down');apRip(el);el.click();await apW(420);return true}
+async function apType(sel,v,label){let el=typeof sel==='string'?await apFind(sel):sel;if(!el)return false;v=v==null?'':String(v);await apMove(el,label,true);
+ if(el.tagName==='SELECT'){if(![...el.options].some(o=>o.value===v))return false;el.classList.add('ap-typing');if(el.value!==v){apSetV(el,v);el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}))}apRip(el);await apW(380);el.classList.remove('ap-typing');return true}
+ if(el.type==='checkbox'){if(el.checked!==!!v){apRip(el);el.click()}await apW(260);return true}
+ AP.focusEl=el;el.focus({preventScroll:true});el.classList.add('ap-typing');
+ if(['date','datetime-local','range','number'].includes(el.type)||AP.k<.5||v.length>48){apSetV(el,v)}else{apSetV(el,'');for(let i=1;i<=v.length;i++){if(!el.isConnected&&typeof sel==='string')el=apQ(sel)||el;apSetV(el,v.slice(0,i));await apW(18+Math.random()*26)}}
+ el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));await apW(160);el.classList.remove('ap-typing');if(el.isConnected)el.blur();await apW(180);return true}
+function apWipe(txt){if(apRM())return;const B=(wrap&&$('.sx-body',wrap))||null;const r=B?B.getBoundingClientRect():{left:0,top:0,width:innerWidth,height:innerHeight};const w=document.createElement('div');w.className='ap-wipe';Object.assign(w.style,{left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px'});w.innerHTML='<span>'+apIc(AP.ag,14)+esc(txt)+'</span>';document.body.appendChild(w);setTimeout(()=>w.remove(),800)}
+async function apGo(v){const T=TABS.find(t=>t.k===v);const nm=T?T.n:v;apSay('باز کردن «'+nm+'»');if(!wrap){open(v);await apW(700)}
+ const b=wrap&&$(`.sx-tabs button[data-v="${v}"]`,wrap);if(apVis(b)&&!b.classList.contains('on')){await apMove(b,'رفتن به «'+nm+'»');const c=apCur();c.classList.add('down');await apW(110);c.classList.remove('down');apRip(b)}
+ apWipe(nm);open(v);await apW(820);const B=apRoot();if(B&&B.scrollTo)B.scrollTo({top:0,behavior:'smooth'})}
+function apSay(t,ag){const a=APA[ag||AP.ag]||APA.orc;AP.logN=(AP.logN||0)+1;AP.log.push({id:AP.logN,t:Date.now(),a:a[0],ag:ag||AP.ag,m:t});if(AP.log.length>200)AP.log.shift();apHud()}
+function apFly(txt){if(apRM())return;const h=$('.ap-hud');if(!h||h.classList.contains('min'))return;const tab=$('.ap-tabs button[data-t="vals"]',h)||h;const tr=tab.getBoundingClientRect();
+ const s=AP.lastRect&&Date.now()-AP.lastRect.t<4000?AP.lastRect:{x:AP.cx??innerWidth/2,y:AP.cy??innerHeight/2};const f=document.createElement('div');f.className='ap-fly';f.textContent=txt;document.body.appendChild(f);
+ const w=f.offsetWidth,hh=f.offsetHeight;const x0=s.x-w/2,y0=s.y-hh/2,x1=tr.left+tr.width/2-w/2,y1=tr.top+tr.height/2-hh/2;const mx=(x0+x1)/2,my=Math.min(y0,y1)-90;
+ const K=[];for(let i=0;i<=10;i++){const t=i/10,u=1-t;K.push({transform:`translate(${u*u*x0+2*u*t*mx+t*t*x1}px,${u*u*y0+2*u*t*my+t*t*y1}px) scale(${1-.55*t*t})`,opacity:i===10?0:1})}
+ f.animate(K,{duration:900,easing:'cubic-bezier(.5,0,.3,1)',fill:'forwards'}).finished.then(()=>{f.remove();const e=$('.ap-tabs button[data-t="vals"] em',h);if(e){e.classList.remove('bump');void e.offsetWidth;e.classList.add('bump')}}).catch(()=>f.remove())}
+function apVal(k,label,value,w){const i=AP.vals.findIndex(x=>x.k===k);const o={k,label,value:String(value),w:!!w,n:Date.now(),view:wrap?view:'map'};if(i>=0)AP.vals[i]=o;else AP.vals.push(o);apFly(String(value).slice(0,46));apHud()}

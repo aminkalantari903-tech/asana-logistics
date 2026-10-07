@@ -1,0 +1,95 @@
+{
+ "index": {
+  "path": "public/index.html",
+  "parts": 15,
+  "sha256": "8ba4836902f9a3fa83e93ec2cd4c41f72284a61dec3530ddbf4100cd7227c193",
+  "bytes": 9299348
+ },
+ "binaries": [
+  {
+   "path": "public/favicon.ico",
+   "file": "bundle/bin/public__favicon.ico.b64",
+   "sha256": "321d4b72c5ccdb53ca28c0f031afbe4d2e55e172da820d2b4ed2a5f7be64db18"
+  },
+  {
+   "path": "public/fonts/inter-4ee8fc98.woff2",
+   "file": "bundle/bin/public__fonts__inter-4ee8fc98.woff2.b64",
+   "sha256": "71d5ee93cc1e9f1d520a3a8b66456de18c7879d8df09d57fcd2eaff75fef0075"
+  },
+  {
+   "path": "public/fonts/inter-56724408.woff2",
+   "file": "bundle/bin/public__fonts__inter-56724408.woff2.b64",
+   "sha256": "3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62"
+  },
+  {
+   "path": "public/fonts/inter-eef1e497.woff2",
+   "file": "bundle/bin/public__fonts__inter-eef1e497.woff2.b64",
+   "sha256": "1be3448e292fbf05ffe176fe1e43f135013d50b1e7d324ad1a558f623d3bb6f6"
+  },
+  {
+   "path": "public/fonts/inter-39529051.woff2",
+   "file": "bundle/bin/public__fonts__inter-39529051.woff2.b64",
+   "sha256": "34b9c504cab7a73e37b746343a449132e56cf7b5481af2cb81dc74dcff25c956"
+  },
+  {
+   "path": "public/fonts/inter-ec84a376.woff2",
+   "file": "bundle/bin/public__fonts__inter-ec84a376.woff2.b64",
+   "sha256": "ca157063339ac4ad418f214f3abfed119b0798ab4d377386ce5c9e5a7a435ebd"
+  },
+  {
+   "path": "public/fonts/inter-f55b8d39.woff2",
+   "file": "bundle/bin/public__fonts__inter-f55b8d39.woff2.b64",
+   "sha256": "6e9e020a25f9b56d418f2c085b1d3c09725a4da23fe693a5b463064606732190"
+  },
+  {
+   "path": "public/fonts/inter-983e9094.woff2",
+   "file": "bundle/bin/public__fonts__inter-983e9094.woff2.b64",
+   "sha256": "5c66f9e07e90c6d4ac4922cc68d60de26c17b1858e677fb5e603fce3952b3ff2"
+  },
+  {
+   "path": "public/fonts/vazirmatn-d10c3cc1.woff2",
+   "file": "bundle/bin/public__fonts__vazirmatn-d10c3cc1.woff2.b64",
+   "sha256": "21529facfd236f6be527e4353623bdb889c96a7ebb7db1e148e28406be0ea004"
+  },
+  {
+   "path": "public/fonts/vazirmatn-b37f9008.woff2",
+   "file": "bundle/bin/public__fonts__vazirmatn-b37f9008.woff2.b64",
+   "sha256": "84a382e46c30fb4f73d0e3800c16d0af15888e2731e57fa5f93e2c29a2c6a957"
+  },
+  {
+   "path": "public/fonts/vazirmatn-f50a3803.woff2",
+   "file": "bundle/bin/public__fonts__vazirmatn-f50a3803.woff2.b64",
+   "sha256": "d29c041cd4294af893cf3c01dfab6d47202c667ab55d702f68782599918c651d"
+  },
+  {
+   "path": "public/icons/icon-192.png",
+   "file": "bundle/bin/public__icons__icon-192.png.b64",
+   "sha256": "c8dfb81121b69007774f6d66c2a215960aa86697640a4881d8c5de8e5620b063"
+  },
+  {
+   "path": "public/icons/icon-512.png",
+   "file": "bundle/bin/public__icons__icon-512.png.b64",
+   "sha256": "9d897828b59c8462d6c1469357960ff0517a5cc7990b20ad488f7c98645a4b79"
+  },
+  {
+   "path": "public/icons/apple-touch-icon.png",
+   "file": "bundle/bin/public__icons__apple-touch-icon.png.b64",
+   "sha256": "fe21a901435b8b58cc1a3e3e3f19a55da13f48f0d9c112792f049bef210a8c18"
+  },
+  {
+   "path": "public/icons/maskable-512.png",
+   "file": "bundle/bin/public__icons__maskable-512.png.b64",
+   "sha256": "235a56325cb9be39c63dbe16b247c9122cfb61820bc2c4b3779b9526e3c1fce7"
+  },
+  {
+   "path": "public/icons/maskable-192.png",
+   "file": "bundle/bin/public__icons__maskable-192.png.b64",
+   "sha256": "a4c2b42f9f23bcddf34579ed08ec1739e8c5a3e7abae70f75f7665d52d3fc24e"
+  },
+  {
+   "path": "public/icons/asana-mark-1024.png",
+   "file": "bundle/bin/public__icons__asana-mark-1024.png.b64",
+   "sha256": "52de86cb7fe639849c64b14c466081b444707296872c1c041fb8a68772abc30d"
+  }
+ ]
+}

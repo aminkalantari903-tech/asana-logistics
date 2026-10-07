@@ -1,0 +1,9 @@
+async function apSaveFlow(){const S=AP.S;if(!S)return;if(!svOn())return toast('برای ذخیرهٔ فرایند تکرارپذیر روی سرور، ابتدا به سرور تیمی وصل شوید');if(!svCan('flows.edit')&&!(SV.st.perms||[]).includes('agents.use'))return toast('دسترسی ساخت فرایند ندارید');
+ const lane=(S.o.nameEn||S.o.name||S.o.nameFa)+' → '+(S.d.nameEn||S.d.name||S.d.nameFa);const c=S.cargo;
+ const body={name:'پیگیری دوره‌ای مسیر '+S.o.nameFa+' ← '+S.d.nameFa,d:'ساخته‌شده از کنترل خودکار: سابقهٔ نرخ، شاخص بازار، برنامهٔ استعلام (ارسال با تأیید) و گزارش هفتگی به تیم.',sched:{mode:'weekly',at:'10:00',dow:6},
+  vars:{pol:S.o.nameEn||S.o.nameFa,dest:S.d.nameEn||S.d.nameFa,eq:S.eq||c.containerType||'40HC',qty:S.ncont||1,value:+c.value||0,weightT:Math.ceil((+c.weightKg||0)/1000),deadlineDays:45,commodity:AP.opts.desc||APCF[c.commodity]||''},
+  steps:[{type:'tool',title:'سابقهٔ نرخ مسیر',tool:'rates_search',args:{pol:'{{vars.pol}}',pod:'{{vars.dest}}',eq:'{{vars.eq}}'},onFail:'continue'},{type:'tool',title:'شاخص‌های بازار',tool:'market_indices',onFail:'continue'},
+   {type:'agent',title:'برنامهٔ استعلام (کارشناس خرید)',agent:'procurement',kind:'plan',input:{pol:'{{vars.pol}}',dest:'{{vars.dest}}',eq:'{{vars.eq}}',qty:'{{vars.qty}}',value:'{{vars.value}}',weightT:'{{vars.weightT}}',deadlineDays:'{{vars.deadlineDays}}',commodity:'{{vars.commodity}}'}},
+   {type:'llm',title:'جمع‌بندی برای فروش',prompt:'برای مسیر '+lane+' وضعیت نرخ و بازار این هفته را در ۵ خط جمع‌بندی کن و بگو آیا زمان مناسبی برای قیمت‌دهی است.',fallback:'برنامهٔ استعلام مسیر {{vars.pol}} → {{vars.dest}} آماده شد.'},
+   {type:'notify',title:'گزارش به تیم',event:'agent.report',text:'🔁 {{flow.name}}\n{{s4.text}}',dedupe:'lane|{{vars.pol}}|{{vars.dest}}|{{today}}'}]};
+ try{const j=await svApi('/api/flows',{method:'POST',body});toast('فرایند تکرارپذیر «'+j.flow.name+'» ساخته شد (هر شنبه ۱۰:۰۰)');AGS.tab='flow';agSv();open('agt')}catch(e){toast(e.message)}}

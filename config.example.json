@@ -1,0 +1,76 @@
+{
+  "port": 8080,
+  "host": "0.0.0.0",
+  "dataDir": "./data",
+  "publicUrl": "https://atlas.example.ir",
+  "tokenHours": 12,
+  "maxUploadMB": 25,
+  "cors": "*",
+  "bale": {
+    "token": ""
+  },
+  "telegram": {
+    "token": ""
+  },
+  "kavenegar": {
+    "apiKey": "",
+    "sender": ""
+  },
+  "webhook": {
+    "url": "",
+    "secret": ""
+  },
+  "dcsa": {
+    "baseUrl": "",
+    "apiKey": "",
+    "header": "API-Key"
+  },
+  "moadian": {
+    "submitUrl": "",
+    "authHeader": "",
+    "privateKeyFile": ""
+  },
+  "scheduler": {
+    "rateDays": 3,
+    "overdueHours": 24,
+    "everyMin": 10
+  },
+  "smtp": {
+    "host": "",
+    "port": 587,
+    "secure": false,
+    "starttls": true,
+    "user": "",
+    "pass": "",
+    "from": "Atlas <atlas@example.ir>"
+  },
+  "live": {
+    "fx": {
+      "official": "https://open.er-api.com/v6/latest/USD",
+      "fallback": "https://api.frankfurter.app/latest?from=USD",
+      "market": "tgju",
+      "navasanKey": "",
+      "everyMin": 10
+    },
+    "weather": {
+      "enabled": true,
+      "everyMin": 30
+    },
+    "routing": {
+      "osrmUrl": "https://router.project-osrm.org",
+      "orsKey": ""
+    },
+    "sanctions": {
+      "enabled": true,
+      "everyHours": 24,
+      "eu": true
+    },
+    "holidays": {
+      "enabled": true,
+      "days": 400
+    },
+    "rfq": {
+      "days": 14
+    }
+  }
+}

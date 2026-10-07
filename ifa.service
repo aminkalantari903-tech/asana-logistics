@@ -1,0 +1,14 @@
+[Unit]
+Description=Asana Logistics — سامانه لجستیک آسانا (team server)
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/ifa
+ExecStart=/usr/bin/node --experimental-sqlite --no-warnings /opt/ifa/server.js
+Restart=always
+User=ifa
+Environment=NODE_ENV=production
+EnvironmentFile=-/opt/ifa/.env
+
+[Install]
+WantedBy=multi-user.target

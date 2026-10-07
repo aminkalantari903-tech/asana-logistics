@@ -1,0 +1,20 @@
+{
+  "name": "iran-freight-atlas",
+  "version": "15.13.0",
+  "private": true,
+  "description": "سامانه لجستیک آسانا · Asana Logistics (web app + team server)",
+  "main": "server.js",
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "restore": "node scripts/restore.js",
+    "prestart": "node scripts/restore.js",
+    "start": "node --experimental-sqlite --no-warnings server.js",
+    "reset-admin": "node --experimental-sqlite --no-warnings server.js --reset-admin",
+    "pretest": "node scripts/restore.js",
+    "test": "node --experimental-sqlite --no-warnings test/smoke.js && node test/agents.test.js",
+    "test:agents": "node test/agents.test.js",
+    "test:llm": "node test/llm.live.js"
+  }
+}

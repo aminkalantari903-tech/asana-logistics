@@ -1,0 +1,36 @@
+services:
+  ifa:
+    build: .
+    image: asana-logistics:15.9
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ifa-data:/data
+      # - ./config.json:/app/config.json:ro
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - IFA_PUBLIC_URL=http://localhost:8080
+      # - IFA_AUTH=open          # بدون رمز (پیش‌فرض)؛ password = ورود با رمز
+      # - IFA_OPEN_SCOPE=lan     # توجه: در Docker همهٔ درخواست‌ها از آدرس داخلی شبکهٔ Docker می‌آیند؛ اگر پورت روی اینترنت باز است IFA_AUTH=password بگذارید
+      # - IFA_ADMIN_PASS=change-me-now
+      # - IFA_BALE_TOKEN=
+      # - IFA_TELEGRAM_TOKEN=
+      # - IFA_KAVENEGAR_KEY=
+      # - IFA_KAVENEGAR_SENDER=
+      # ایمیل (ارسال استعلام و اعلان)
+      # - IFA_SMTP_HOST=smtp.example.ir
+      # - IFA_SMTP_PORT=587
+      # - IFA_SMTP_USER=
+      # - IFA_SMTP_PASS=
+      # - IFA_SMTP_FROM=atlas@example.ir
+      # اتصال‌های زنده
+      # - IFA_FX_MARKET=tgju        # tgju | navasan | none | آدرس JSON سفارشی
+      # - IFA_NAVASAN_KEY=
+      # - IFA_ORS_KEY=              # مسیریابی کامیون (OpenRouteService)
+      # - IFA_OSRM_URL=             # سرور OSRM داخلی
+      # - IFA_LIVE_OFF=             # مثلاً weather,sanctions
+volumes:
+  ifa-data:

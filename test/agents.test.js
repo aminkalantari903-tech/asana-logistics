@@ -179,6 +179,7 @@ const rpc=(m,params,tok,id=1,p='/mcp')=>api(p,{method:'POST',body:{jsonrpc:'2.0'
     t('client: v15.15 data connectors embedded',['function cnShow(','function cnSched(','/api/live/hs/verify','IFA.connectors=','.cn-dlg{'].every(x=>H.includes(x)));
     t('client: v15.16 actual costs + calibration embedded',['function acShow(','function invParse(','/api/actuals','.ac-dlg{','IFA.actuals='].every(x=>H.includes(x)));
     t('client: v15.17 Iran data (channels, tariff book, port tariffs) embedded',['function irShow(','function irTb(','function irFxSync(','/api/ratech','/api/ports/tariff/calc','IFA.iran=','.ir-dlg{'].every(x=>H.includes(x)));
+    t('client: v15.18 instant autopilot, checkpoints, provenance, scenarios, decision card embedded',['const APH={','function apScenRows(','function apCk(','function apResume(','function apPvHtml(','const APWI={','function apDecision(','/api/ap/runs','/api/ap/ckpt','.ap-dec{','.ap-rsm{',"'instant','فوری"].every(x=>H.includes(x)));
     t('client: assistant + autopilot + flows UI embedded (v15.10)',['function calcEval(','function asFab(','IFA.autopilot','function agFlows(',"['flow','فرایندهای تکرارپذیر']"].every(x=>H.includes(x)));
     t('client: embedded server.js matches shipped server.js',!!m&&Buffer.from(m[1],'base64').equals(fs.readFileSync(path.join(__dirname,'..','server.js'))))}
  }catch(e){fail++;console.error(e)}

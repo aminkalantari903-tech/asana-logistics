@@ -94,6 +94,15 @@ const api=async(p,o={},tok)=>{const r=await fetch(B+p,{method:o.method||'GET',he
   r=await api('/api/ratech/ingest',{method:'POST',body:{source:r.j.sources[0].id,text:'شانگهای به بندرعباس 40HC 2450 دلار'}},T);t('channel message → rate auto-added',r.s===200&&r.j.auto===1&&r.j.items[0].amt===2450);
   r=await api('/api/ratech/ingest',{method:'POST',body:{text:'Qingdao - Bandar Abbas 40HC USD 2600'}},T);t('untrusted message queued for review',r.j.pending===1);
   r=await api('/api/ratech/items/'+r.j.items[0].id,{method:'POST',body:{action:'approve'}},T);t('queued rate approved',r.s===200&&r.j.status==='approved');
+  r=await api('/api/ap/runs',{method:'POST',body:{lane:'CN_SHA>IR_THR',name:'شانگهای ← تهران',route:'r1',mode:'instant',score:72,verdict:'ok',dur:6,st:{intake:{st:'ok',ms:40},route:{st:'ok',ms:300},dd:{st:'skip'},tariff:{st:'warn',note:'مهلت'}},vals:[{k:'land',label:'L',value:'$1',p:{src:'model',conf:0.6,band:[1,2]}}],finds:[{k:'risk',id:'top',sev:'hi',t:'x'}],dec:{verdict:'v',rec:{name:'#1 rail',cost:40000,days:22,risk:26},alts:[{name:'#2 sea',cost:41000,days:30,risk:37}],risks:['a','b'],conf:0.62,band:[1,2,3]},timeouts:1}},T);t('autopilot run report stored',r.s===200&&r.j.id>0);
+  const apId=r.j.id;r=await api('/api/ap/runs?lane=CN_SHA>IR_THR',{},T);t('autopilot runs listed with decision',r.s===200&&r.j.runs.length>=1&&r.j.runs[0].decision.rec.name==='#1 rail'&&r.j.runs[0].ok===2&&r.j.runs[0].warn===1&&r.j.runs[0].hi===1);
+  r=await api('/api/ap/run?id='+apId,{},T);t('autopilot run detail (stages + provenance)',r.s===200&&r.j.stages.route.ms===300&&r.j.vals[0].p.conf===0.6);
+  r=await api('/api/ap/stats',{},T);t('autopilot stats (stage warn %, timeouts)',r.s===200&&r.j.runs>=1&&r.j.timeouts>=1&&r.j.stages.tariff.warnPct===100);
+  r=await api('/api/ap/runs',{method:'POST',body:{name:'x'}},T);t('autopilot run without lane rejected',r.s===400);
+  r=await api('/api/ap/ckpt',{method:'PUT',body:{lane:'CN_SHA>IR_THR',st:{intake:'ok'},vals:[]}},T);t('autopilot checkpoint saved',r.s===200);
+  r=await api('/api/ap/ckpt',{},T);t('autopilot checkpoint restored',r.s===200&&r.j.ck&&r.j.ck.st.intake==='ok');
+  r=await api('/api/ap/ckpt',{method:'DELETE'},T);r=await api('/api/ap/ckpt',{},T);t('autopilot checkpoint cleared',r.s===200&&r.j.ck===null);
+  r=await api('/api/ap/runs',{});t('autopilot runs need auth',r.s===401);
   r=await api('/api/live/hs/verify?code=12');t('hs verify validates input',r.s===400||r.s===501);
   r=await api('/api/live/matrix',{method:'POST',body:{points:[[35.69,51.39]]}});t('matrix validates input',r.s===400);
   /* v15.4 market indices: endpoint + manual entry (offline) and parsers on fixtures */

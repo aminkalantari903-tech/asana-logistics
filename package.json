@@ -1,6 +1,6 @@
 {
   "name": "iran-freight-atlas",
-  "version": "15.13.0",
+  "version": "15.17.0",
   "private": true,
   "description": "سامانه لجستیک آسانا · Asana Logistics (web app + team server)",
   "main": "server.js",

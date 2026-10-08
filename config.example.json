@@ -71,6 +71,20 @@
     },
     "rfq": {
       "days": 14
+    },
+    "conn": {
+      "hsOfficial": true,
+      "neshanKey": "",
+      "neshanTraffic": false,
+      "schedules": [
+        {
+          "name": "Hapag-Lloyd",
+          "baseUrl": "https://<DCSA Commercial Schedules base URL from the carrier portal>",
+          "key": "",
+          "header": "API-Key",
+          "path": "/point-to-point-routes"
+        }
+      ]
     }
   }
 }

@@ -72,6 +72,29 @@ const api=async(p,o={},tok)=>{const r=await fetch(B+p,{method:o.method||'GET',he
   r=await api('/api/kv?keys=ifa-quotes',{},T);const qs=JSON.parse(r.j['ifa-quotes'].value||'[]');t('quote synced into ifa-quotes',qs.length===1&&qs[0].c===7100&&qs[0].route==='TEST-ROUTE'&&qs[0].p==='Forwarder A');
   r=await api('/api/rfq',{},T);t('rfq list with response',r.j[0].responses.length===1);
   r=await api('/api/live/status');t('live status',r.s===200&&r.j.config.smtp===true);
+  r=await api('/api/live/connectors');t('live connectors registry (v1.10)',r.s===200&&Array.isArray(r.j.connectors)&&r.j.connectors.some(c=>c.id==='hsOfficial')&&r.j.connectors.some(c=>c.id==='neshan'));
+  /* v1.11 actual costs + calibration */
+  t('actuals parse needs login',(await api('/api/actuals/parse',{method:'POST',body:{text:'Ocean freight 1850 USD'}})).s===401);
+  r=await api('/api/actuals/parse',{method:'POST',body:{text:'Ocean freight 1,850 USD\nTHC 4,200,000 تومان\nTotal 2,000 USD'}},T);t('actuals parse invoice text',r.s===200&&r.j.lines.length===2&&r.j.lines[0].comp==='freight'&&r.j.lines[1].cur==='IRR'&&r.j.lines[1].amt===42000000);
+  r=await api('/api/actuals',{method:'POST',body:{ref:'JOB-T',lane:'CN_SHA>IR_THR',mode:'sea',date:'2026-09-20',lines:[{comp:'freight',amt:2400,cur:'USD',est:2000},{comp:'thc',amt:260,cur:'USD',est:200}]}},T);t('actuals saved',r.s===200&&r.j.n===2);
+  r=await api('/api/actuals/calib?lane=CN_SHA%3EIR_THR&mode=sea',{},T);t('actuals calibration factor',r.s===200&&r.j.components.freight&&r.j.components.freight.factor>1&&r.j.components.freight.factor<1.2);
+  r=await api('/api/actuals/accuracy',{},T);t('actuals accuracy',r.s===200&&r.j.n===2&&r.j.byComp.freight.n===1);
+  /* v1.12 Iran data: customs tariff book + customs FX, PMO port tariffs, rate channels */
+  const TBC='ردیف تعرفه,شرح کالا,حقوق ورودی,SUQ,اولویت\n8429.5200,ماشین‌آلات با روبنای گردان,10,u,2\n8471.3000,رایانهٔ قابل حمل,۱۵,u,4\n';
+  t('tariff import needs login',(await api('/api/tariff/ir/import',{method:'POST',body:{text:TBC}})).s===401);
+  r=await api('/api/tariff/ir/import',{method:'POST',body:{text:TBC,label:'test'}},T);t('tariff book import (CSV, Persian digits)',r.s===200&&r.j.imported===2&&r.j.sample[1].duty===15&&r.j.sample[0].desc.includes('\u200c'));
+  r=await api('/api/tariff/ir?hs=84295200',{},T);t('tariff lookup exact',r.s===200&&r.j.result.match==='exact'&&r.j.result.duty===10);
+  r=await api('/api/tariff/ir?hs=847130',{},T);t('tariff lookup by 6-digit prefix',r.j.result&&r.j.result.hs==='84713000');
+  r=await api('/api/tariff/fx',{method:'PUT',body:{rates:{USD:285000},vat:10,hl:1}},T);t('customs FX saved',r.s===200&&r.j.rates.USD===285000);
+  r=await api('/api/tariff/ir/calc',{method:'POST',body:{hs:'84295200',cif:10000}},T);t('customs duty calc with book rate + customs FX',r.s===200&&r.j.rate===10&&r.j.customsValueIRR===2850000000&&r.j.dutyIRR===285000000&&r.j.vatIRR===313500000);
+  const PTC='بندر,خدمت,کانتینر,واحد,مبلغ,ارز,از روز,تا روز,روز آزاد\nSHR,تخلیه و بارگیری,40,کانتینر,38000000,IRR,,,\nSHR,انبارداری,40,روز,4000000,IRR,6,12,5\nSHR,انبارداری,40,روز,10000000,IRR,13,,5\n';
+  r=await api('/api/ports/tariff/import',{method:'POST',body:{text:PTC,label:'test'}},T);t('port tariff import (+ storage tiers synced)',r.s===200&&r.j.imported===3&&r.j.ddSynced===1);
+  r=await api('/api/ports/tariff/calc',{method:'POST',body:{port:'IR_BND',eq:'40HC',qty:2,days:15}},T);t('port charges calc (handling + tiered storage)',r.s===200&&r.j.totalIRR===2*38000000+2*(7*4000000+3*10000000));
+  r=await api('/api/ratech/cfg',{method:'PUT',body:{sources:[{kind:'tg',handle:'https://t.me/s/test_rates',name:'test',trust:true,auto:true}]}},T);t('rate channel source saved',r.s===200&&r.j.sources[0].handle==='test_rates');
+  r=await api('/api/ratech/ingest',{method:'POST',body:{source:r.j.sources[0].id,text:'شانگهای به بندرعباس 40HC 2450 دلار'}},T);t('channel message → rate auto-added',r.s===200&&r.j.auto===1&&r.j.items[0].amt===2450);
+  r=await api('/api/ratech/ingest',{method:'POST',body:{text:'Qingdao - Bandar Abbas 40HC USD 2600'}},T);t('untrusted message queued for review',r.j.pending===1);
+  r=await api('/api/ratech/items/'+r.j.items[0].id,{method:'POST',body:{action:'approve'}},T);t('queued rate approved',r.s===200&&r.j.status==='approved');
+  r=await api('/api/live/hs/verify?code=12');t('hs verify validates input',r.s===400||r.s===501);
   r=await api('/api/live/matrix',{method:'POST',body:{points:[[35.69,51.39]]}});t('matrix validates input',r.s===400);
   /* v15.4 market indices: endpoint + manual entry (offline) and parsers on fixtures */
   r=await api('/api/live/indices');t('indices endpoint (sources listed)',r.s===200&&r.j.sources&&r.j.sources.ccfi&&r.j.sources.bunker&&typeof r.j.hist==='object');

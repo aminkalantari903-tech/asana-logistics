@@ -175,6 +175,10 @@ const rpc=(m,params,tok,id=1,p='/mcp')=>api(p,{method:'POST',body:{jsonrpc:'2.0'
    {const H=fs.readFileSync(path.join(__dirname,'..','public','index.html'),'utf8');const m=H.match(/const SRVJS='([A-Za-z0-9+\/=]+)'/);
     t('client: agents tab + IFA.agents API embedded (v15.9)',/function rAgt\(b,C\)/.test(H)&&/agt:rAgt,/.test(H)&&/get agents\(\)\{return agApi\}/.test(H)&&/IFA=\{version:'15\.(?:9|1\d)(?:\.\d+)?'/.test(H)&&/'agent\.approval':\[/.test(H));
     t('client: v15.11+ motion/interaction layer embedded',['function apKey(','function apPause(','function apTl(','function apMode(','.ap-tl{','function apGlide(','.as-tip','@property --ap-p','prefers-reduced-motion',"!(typeof AP!=='undefined'&&AP.run))e.stopImmediatePropagation()"].every(x=>H.includes(x)));
+    t('client: v15.14 agent brain + mobile layer embedded',['function apThink(','function apExec(','function apBrief(','function apHistSave(','.ap-brief{','data-t="fx"','function mbFix(','.mb-g1{','@media (max-width:760px)','.nv-rail .nv-it span{display:block!important'].every(x=>H.includes(x)));
+    t('client: v15.15 data connectors embedded',['function cnShow(','function cnSched(','/api/live/hs/verify','IFA.connectors=','.cn-dlg{'].every(x=>H.includes(x)));
+    t('client: v15.16 actual costs + calibration embedded',['function acShow(','function invParse(','/api/actuals','.ac-dlg{','IFA.actuals='].every(x=>H.includes(x)));
+    t('client: v15.17 Iran data (channels, tariff book, port tariffs) embedded',['function irShow(','function irTb(','function irFxSync(','/api/ratech','/api/ports/tariff/calc','IFA.iran=','.ir-dlg{'].every(x=>H.includes(x)));
     t('client: assistant + autopilot + flows UI embedded (v15.10)',['function calcEval(','function asFab(','IFA.autopilot','function agFlows(',"['flow','فرایندهای تکرارپذیر']"].every(x=>H.includes(x)));
     t('client: embedded server.js matches shipped server.js',!!m&&Buffer.from(m[1],'base64').equals(fs.readFileSync(path.join(__dirname,'..','server.js'))))}
  }catch(e){fail++;console.error(e)}

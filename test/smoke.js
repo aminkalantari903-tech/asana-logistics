@@ -103,6 +103,19 @@ const api=async(p,o={},tok)=>{const r=await fetch(B+p,{method:o.method||'GET',he
   r=await api('/api/ap/ckpt',{},T);t('autopilot checkpoint restored',r.s===200&&r.j.ck&&r.j.ck.st.intake==='ok');
   r=await api('/api/ap/ckpt',{method:'DELETE'},T);r=await api('/api/ap/ckpt',{},T);t('autopilot checkpoint cleared',r.s===200&&r.j.ck===null);
   r=await api('/api/ap/runs',{});t('autopilot runs need auth',r.s===401);
+  r=await api('/api/ap/intake',{method:'POST',body:{text:'۲ کانتینر از شانگهای به مشهد'}},T);t('plan intake without model is honest',r.s===200&&r.j.llm===false);
+  r=await api('/api/ap/intake',{method:'POST',body:{text:''}},T);t('plan intake empty rejected',r.s===400);
+  r=await api('/api/ap/actions',{method:'POST',body:{run:1,name:'x',items:[{kind:'rfq',title:'RFQ'},{kind:'watch',title:'W',payload:{lane:'CN_SHA>IR_THR',pol:'CNSHA',pod:'IRBND',eq:'40HC',maxDays:30,deadline:'2030-01-10'}},{kind:'bogus',title:'b'}]}},T);t('plan actions created (invalid kind dropped)',r.s===200&&r.j.ids.length===2);
+  const [aR,aW]=r.j.ids;r=await api('/api/ap/actions?status=pending',{},T);t('plan actions listed pending',r.s===200&&r.j.actions.filter(a=>a.id===aR||a.id===aW).length===2);
+  r=await api('/api/ap/actions/'+aR,{method:'POST',body:{decision:'reject'}},T);t('plan action rejected',r.s===200);
+  r=await api('/api/ap/actions/'+aR,{method:'POST',body:{decision:'approve'}},T);t('plan action double decision 409',r.s===409);
+  r=await api('/api/ap/actions/'+aW,{method:'POST',body:{decision:'approve'}},T);t('approving watch action creates watch',r.s===200&&r.j.watch&&r.j.watch.lane==='CN_SHA>IR_THR'&&r.j.watch.active);
+  const wId=r.j.watch.id;r=await api('/api/ap/watch',{method:'POST',body:{lane:'CN_SHA>IR_THR',eq:'40HC',deadline:'2030-01-10',maxDays:25}},T);t('duplicate watch merged',r.s===200&&r.j.watch.id===wId&&r.j.watch.maxDays===25);
+  r=await api('/api/ap/watch',{method:'POST',body:{name:'x'}},T);t('watch without lane rejected',r.s===400);
+  r=await api('/api/ap/watch/check',{method:'POST',body:{}},T);t('watch check runs',r.s===200&&Array.isArray(r.j.results));
+  r=await api('/api/ap/watch',{},T);t('watch listed',r.s===200&&r.j.watches.some(w=>w.id===wId&&w.active));
+  r=await api('/api/ap/watch/'+wId,{method:'DELETE'},T);r=await api('/api/ap/watch',{},T);t('watch stopped',r.j.watches.some(w=>w.id===wId&&!w.active));
+  r=await api('/api/ap/actions',{});t('plan actions need auth',r.s===401);
   r=await api('/api/live/hs/verify?code=12');t('hs verify validates input',r.s===400||r.s===501);
   r=await api('/api/live/matrix',{method:'POST',body:{points:[[35.69,51.39]]}});t('matrix validates input',r.s===400);
   /* v15.4 market indices: endpoint + manual entry (offline) and parsers on fixtures */

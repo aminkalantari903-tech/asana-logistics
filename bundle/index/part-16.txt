@@ -1,4 +1,84 @@
-:0)+(a.sure?.15:0)}))}
+onst p of a){if(p[0]<=d)best=p;else break}if(best&&fwDiff(best[0],d)<=21)return best;const f=a.find(p=>p[0]>d);return f&&fwDiff(d,f[0])<=10?f:null}
+const mkName=k=>MKL[k]||((MKSER[k.split('|')[0]]||k.split('|')[0])+' '+k.split('|')[1].replace(/_/g,' '));
+/* lane → index mapping (sea freight; primary first) */
+const MKRX={cn:/china|shanghai|ningbo|qingdao|shenzhen|yantian|shekou|guangzhou|nansha|tianjin|xingang|xiamen|dalian|lianyungang|fuzhou|hong ?kong|چین|شانگهای|نینگبو|چینگدائو|شنژن|گوانگژو|تیانجین|شیامن|دالیان|هنگ‌?کنگ/i,
+ asia:/busan|korea|japan|tokyo|yokohama|singapore|port klang|kaohsiung|ho chi minh|haiphong|laem chabang|کره|ژاپن|سنگاپور|بوسان/i,
+ ir:/bandar ?abbas|shahid ?rajaee|rajaee|bnd\b|bushehr|chabahar|imam khomeini|bik\b|khorramshahr|asaluyeh|iran|بندرعباس|بندر عباس|شهید رجایی|رجایی|بوشهر|چابهار|امام خمینی|خرمشهر|عسلویه|ایران/i,
+ gulf:/jebel ?ali|dubai|sharjah|khalifa|abu dhabi|dammam|hamad|doha|sohar|kuwait|umm qasr|basra|jeddah|aqaba|جبل ?علی|دبی|شارجه|ابوظبی|دمام|دوحه|صحار|کویت|ام‌?القصر|بصره|جده/i,
+ neu:/rotterdam|hamburg|antwerp|felixstowe|bremerhaven|le havre|gdansk|روتردام|هامبورگ|آنتورپ/i,
+ med:/genoa|genova|piraeus|valencia|barcelona|mersin|istanbul|ambarli|izmit|gemlik|novorossiysk|constanta|koper|trieste|la spezia|جنوا|پیرئوس|مرسین|استانبول|نووروسیسک/i,
+ usw:/los angeles|long beach|oakland|seattle|tacoma|vancouver|لس/i,use:/new york|savannah|norfolk|charleston|houston|نیویورک/i};
+function mkMap(r){if(r&&r.mode==='rail'){const H=mkHist();return (MKRX.cn.test(String(r.pol||''))||MKRX.cn.test(String(r.pod||'')))&&H['manual|ERAI']?['manual|ERAI']:[]}if(!r||!['sea','multi'].includes(r.mode||'sea'))return [];const o=String(r.pol||''),d=String(r.pod||'');const fromCn=MKRX.cn.test(o)||MKRX.asia.test(o);if(!fromCn)return MKRX.cn.test(d)?[]:['fbx|FBX'];
+ if(MKRX.ir.test(d)||MKRX.gulf.test(d))return ['ccfi|PERSIAN_GULF_RED_SEA','scfi|COMPREHENSIVE_INDEX','ccfi|COMPOSITE_INDEX'];if(MKRX.neu.test(d))return ['fbx|FBX11','wci|ROTTERDAM','ccfi|EUROPE'];if(MKRX.med.test(d))return ['fbx|FBX13','wci|GENOA','ccfi|MEDITERRANEAN'];
+ if(MKRX.usw.test(d))return ['fbx|FBX01','wci|LOS_ANGELES','ccfi|W_C_AMERICA'];if(MKRX.use.test(d))return ['fbx|FBX03','wci|NEW_YORK','ccfi|E_C_AMERICA'];return ['ccfi|COMPOSITE_INDEX','scfi|COMPREHENSIVE_INDEX']}
+const mkRefD=r=>r.from||(r.t?new Date(r.t).toISOString().slice(0,10):null)||fwToday();
+/* index-adjusted value of an actual rate as of `to` (default: latest index) */
+function mkAdj(r,H=mkHist(),to){const u=pU(r.amt,r.cur);for(const k of mkMap(r)){const a=mkAt(H,k,mkRefD(r));const b=to?mkAt(H,k,to):mkLast(H,k);if(a&&b&&a[1]>0){const ratio=b[1]/a[1];return {usd:u*ratio,ratio,k,d0:a[0],v0:a[1],d1:b[0],v1:b[1],base:u}}}return null}
+/* unified lane key: mode | origin | destination | equipment class */
+const mkEqC=e=>{e=String(e||'').toUpperCase().replace(/\s/g,'');if(/^40|FEU|HC|HQ/.test(e))return /RF|RH/.test(e)?'40RF':'40';if(/^20|TEU/.test(e))return /RF/.test(e)?'20RF':'20';return e||'?'};
+const mkPk=s=>nkey(String(s||'').replace(/\(.*?\)|port|بندر|,.*$/gi,'')).slice(0,18);
+const mkLane=r=>[r.mode||'sea',mkPk(r.pol),mkPk(r.pod),mkEqC(r.eq)].join('|');
+const MKSRC={rfq:['استعلام آنلاین',85],email:['ایمیل/متن',70],excel:['فایل Excel',70],csv:['فایل CSV',70],manual:['ثبت دستی',65],seed:['مرجع کریدور',40],index:['برآورد شاخص',35]};
+const mkSrcOf=r=>r.src||(/مرجع کریدور/.test(r.note||'')?'seed':'manual');
+const mkMed=a=>{if(!a.length)return null;const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2};
+/* credibility (0-100) + verdict for every rate in one pass */
+function mkScore(R=rbAll(),H=mkHist()){const t=fwToday();const L={};const V=R.map(r=>{const a=mkAdj(r,H);const u=pU(r.amt,r.cur);const now=a?a.usd:u;const o={r,u,now,adj:a,lane:mkLane(r)};(L[o.lane]=L[o.lane]||[]).push(o);return o});
+ V.forEach(o=>{const r=o.r;const peers=L[o.lane].filter(x=>x!==o&&rbStat(x.r,t)!=='exp');const ref=mkMed(peers.map(x=>x.now));o.ref=ref;o.n=peers.length;
+  const age=Math.max(0,fwDiff(mkRefD(r),t));const fr=age<=7?100:age<=30?80:age<=60?55:age<=90?35:15;const exp=rbStat(r,t)==='exp';
+  const st=(MKSRC[mkSrcOf(r)]||MKSRC.manual)[1]*(r.conf!=null?(.6+.4*r.conf):1);const near=peers.filter(x=>Math.abs(x.now/o.now-1)<=.15).length;const cor=!peers.length?50:near>=2?100:near===1?75:30;
+  o.dv=ref?(o.now/ref-1):null;const ds=o.dv==null?60:Math.abs(o.dv)<=.1?100:Math.abs(o.dv)<=.2?75:Math.abs(o.dv)<=.35?45:15;
+  o.score=Math.round((st*.3+fr*.3+cor*.2+ds*.2)*(exp?.6:1));o.cl=o.score>=75?'ok':o.score>=50?'warn':'bad';
+  o.verdict=o.dv==null?'':o.dv>.15?'exp':o.dv<-.2?'cheap':'fair'});return V}
+const MKV={exp:['گران‌تر از بازار','bad'],cheap:['ارزان مشکوک','warn'],fair:['منصفانه','ok'],'':['بدون مرجع','']};
+const mkVb=v=>`<span class="tm-s ${MKV[v||''][1]}">${MKV[v||''][0]}</span>`;
+const mkCb=o=>`<span class="mk-cr ${o.cl}" title="منبع، تازگی، تأیید متقابل و فاصله از میانهٔ بازار"><i><s style="width:${o.score}%"></s></i><b>${fa(o.score)}</b></span>`;
+/* RFQ quote verdict: other quotes on the route (index-adjusted to today) + system model */
+function mkQuote(q,Q,model){const H=mkHist();const k='ccfi|COMPOSITE_INDEX';const last=mkLast(H,k);const adj=x=>{const d=new Date(x.t||Date.now()).toISOString().slice(0,10);const a=mkAt(H,k,d);return a&&last?x.c*last[1]/a[1]:x.c};
+ const refs=Q.filter(x=>x!==q).map(adj);if(model>0)refs.push(model);const ref=mkMed(refs);if(!ref)return {v:'',dv:null};const dv=q.c/ref-1;return {v:dv>.15?'exp':dv<-.2?'cheap':'fair',dv,ref,n:refs.length}}
+/* ---------- auto-ingest: e-mail / free text / CSV / Excel ---------- */
+const MKCUR=[[/US\$|USD|\$|دلار/i,'USD'],[/EUR|€|یورو/i,'EUR'],[/AED|درهم/i,'AED'],[/CNY|RMB|¥|یوان/i,'CNY'],[/TRY|₺|لیر/i,'TRY'],[/RUB|₽|روبل/i,'RUB'],[/IRR|ریال/i,'IRR']];
+const mkCur=s=>{for(const [re,c] of MKCUR)if(re.test(s))return c;return ''};
+const MKEQ=/\b(20|40|45)\s*['’`]?\s*(GP|DV|DC|HC|HQ|RF|RH|OT|FR|ST|STD)?\b|\b(FEU|TEU)\b/gi;
+const mkEqN=(n,t)=>{if(!n)return t==='FEU'?'40DV':'TEU';t=(t||'').toUpperCase();return n==='20'?(t==='RF'?'20RF':'20DV'):n==='45'?'40HC':t==='HC'||t==='HQ'?'40HC':t==='RF'||t==='RH'?'40RF':'40DV'};
+const MKMON={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+function mkDate(s){s=fa2(s).trim();let m;if(typeof s==='number'||/^\d{5}$/.test(s)){const n=+s;if(n>30000&&n<70000)return new Date(Date.UTC(1899,11,30)+n*864e5).toISOString().slice(0,10)}
+ if((m=s.match(/(20\d\d)[-/.](\d{1,2})[-/.](\d{1,2})/)))return mkIso(+m[1],+m[2],+m[3]);if((m=s.match(/(1[34]\d\d)[-/.](\d{1,2})[-/.](\d{1,2})/))){try{return mkJal(+m[1],+m[2],+m[3])}catch(e){}}
+ if((m=s.match(/(\d{1,2})[-/.](\d{1,2})[-/.](20\d\d)/)))return mkIso(+m[3],+m[2],+m[1]);
+ if((m=s.match(/(\d{1,2})(?:st|nd|rd|th)?[\s-]*([A-Za-z]{3})[a-z]*[\s,-]*(20\d\d)?/))&&MKMON[m[2].toLowerCase()]){const y=+m[3]||new Date().getFullYear();return mkIso(y,MKMON[m[2].toLowerCase()],+m[1])}
+ if((m=s.match(/([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(20\d\d)?/))&&MKMON[m[1].toLowerCase()]){const y=+m[3]||new Date().getFullYear();return mkIso(y,MKMON[m[1].toLowerCase()],+m[2])}return ''}
+const mkIso=(y,m,d)=>{const x=new Date(Date.UTC(y,m-1,d));return isNaN(x)||m>12||d>31?'':x.toISOString().slice(0,10)};
+function mkJal(jy,jm,jd){jy+=1595;let days=-355668+365*jy+Math.floor(jy/33)*8+Math.floor((jy%33+3)/4)+jd+(jm<7?(jm-1)*31:(jm-7)*30+186);let gy=400*Math.floor(days/146097);days%=146097;if(days>36524){gy+=100*Math.floor(--days/36524);days%=36524;if(days>=365)days++}gy+=4*Math.floor(days/1461);days%=1461;if(days>365){gy+=Math.floor((days-1)/365);days=(days-1)%365}
+ const sal=[0,31,(gy%4===0&&gy%100!==0)||gy%400===0?29:28,31,30,31,30,31,31,30,31,30,31];let gm=1;for(;gm<13&&days>=sal[gm];gm++)days-=sal[gm];return mkIso(gy,gm,days+1)}
+const MKPORT=/(shanghai|ningbo|qingdao|shenzhen|yantian|shekou|guangzhou|nansha|tianjin|xingang|xiamen|dalian|hong ?kong|busan|singapore|bandar ?abbas|shahid ?rajaee|bushehr|chabahar|imam khomeini|jebel ?ali|dubai|sharjah|mersin|istanbul|rotterdam|hamburg|genoa|novorossiysk|umm qasr|karachi|nhava sheva|mundra|شانگهای|نینگبو|چینگدائو|شنژن|گوانگژو|تیانجین|بندرعباس|بندر عباس|شهید رجایی|بوشهر|چابهار|امام خمینی|جبل ?علی|دبی|مرسین|استانبول)/i;
+function mkIncl(s){s=String(s);const inc=[];if(/all[\s-]?in/i.test(s))inc.push('all-in');if(/BAF|bunker/i.test(s))inc.push(/BAF[^.\n]{0,20}(incl|included|شامل)/i.test(s)?'BAF شامل':'BAF جدا');if(/THC/i.test(s))inc.push(/THC[^.\n]{0,20}(incl|included|شامل)/i.test(s)?'THC شامل':'THC جدا');if(/subject to|excl/i.test(s))inc.push('هزینه‌های جانبی جدا');return inc.join('، ')}
+function mkMode(s){return /rail|train|wagon|ریلی|قطار|واگن/i.test(s)?'rail':/truck|road|FTL|LTL|کامیون|جاده/i.test(s)?'road':/air|AWB|kg\b|هوایی/i.test(s)?'air':'sea'}
+/* header-based tables (CSV/Excel/TSV) */
+const MKH={pol:/^(pol|origin|from|load|loading|port of loading|مبدأ|مبدا|بارگیری)/i,pod:/^(pod|dest|destination|to|discharge|port of discharge|مقصد|تخلیه)/i,eq:/^(eq|equip|equipment|container|cntr|type|size|تجهیز|کانتینر|نوع)/i,amt:/^(amt|amount|rate|price|o\/f|ocean ?freight|freight|all ?in|مبلغ|نرخ|قیمت|کرایه)/i,cur:/^(cur|currency|ارز)/i,
+ to:/^(valid|validity|valid to|valid till|expiry|exp|to date|اعتبار|معتبر تا)/i,from:/^(valid from|from date|effective|شروع)/i,vendor:/^(vendor|carrier|line|agent|forwarder|supplier|company|شرکت|خط|حمل|تأمین)/i,tt:/^(tt|transit|t\/t|ترانزیت)/i,mode:/^(mode|شیوه)/i,note:/^(note|remark|توضیح)/i};
+function mkTable(rows,src){if(!rows||rows.length<2)return null;let hi=-1,map=null;for(let i=0;i<Math.min(rows.length,8);i++){const M={},eqc=[];rows[i].forEach((c,j)=>{const s=fa2(c).trim();if(!s)return;const em=s.match(/^(20|40|45)\s*['’]?\s*(GP|DV|DC|HC|HQ|RF|ST)?$/i);if(em){eqc.push([j,mkEqN(em[1],em[2])]);return}for(const [k,re] of Object.entries(MKH))if(M[k]==null&&re.test(s)){M[k]=j;break}});
+  if((M.pol!=null||M.pod!=null)&&(M.amt!=null||eqc.length)){hi=i;map={M,eqc};break}}if(!map)return null;const {M,eqc}=map;const out=[];const g=(r,k)=>M[k]!=null?fa2(r[M[k]]).trim():'';
+ rows.slice(hi+1).forEach(r=>{if(!r||!r.some(x=>String(x).trim()))return;const pol=g(r,'pol'),pod=g(r,'pod');if(!pol&&!pod)return;const cur=mkCur(g(r,'cur'))||mkCur(g(r,'amt'))||'USD';const to=mkDate(r[M.to]!=null?r[M.to]:'');const from=mkDate(r[M.from]!=null?r[M.from]:'')||fwToday();
+  const base={mode:RMODE[g(r,'mode')]?g(r,'mode'):mkMode(g(r,'eq')+' '+g(r,'note')),vendor:g(r,'vendor'),pol,pod,cur,from,to,tt:fwN(g(r,'tt'))||null,note:g(r,'note'),incl:mkIncl(g(r,'note')+' '+g(r,'amt')),src};
+  const push=(eq,amt)=>{const a=+String(amt).replace(/[^\d.]/g,'');if(a>0)out.push({...base,eq,amt:a,conf:(pol&&pod?.5:.2)+(to?.25:0)+(base.vendor?.25:0)})};
+  if(eqc.length)eqc.forEach(([j,eq])=>push(eq,fa2(r[j])));else push(M.eq!=null?(()=>{const s=g(r,'eq').toUpperCase();const m=s.match(/(20|40|45)\s*['’]?\s*(GP|DV|DC|HC|HQ|RF)?/);return m?mkEqN(m[1],m[2]):REQ.includes(s)?s:s||'40DV'})():'40DV',g(r,'amt'))});return out}
+
+/* pair money amounts with the nearest container size on one line */
+function mkAmts(L0){const L=L0.replace(/\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{4}/g,x=>' '.repeat(x.length));const E=[],A=[];let m;const er=/\b(20|40|45)\s*['’`]?\s*(GP|DV|DC|HC|HQ|RF|RH|OT|FR|ST|STD|NOR)?(?!\d)(?![.,]\d)(?!\s*(?:days?|روز|%|kg|ton|t\b))|\b(FEU|TEU)\b/gi;
+ while((m=er.exec(L)))E.push({s:m.index,e:m.index+m[0].length,eq:m[3]?(m[3].toUpperCase()==='FEU'?'40DV':'TEU'):mkEqN(m[1],m[2])});
+ const ar=/(US\$|USD|\$|EUR|€|AED|CNY|RMB|¥)?\s?(\d{1,3}(?:,\d{3})+|\d{2,6})(\.\d+)?\s?(USD|EUR|AED|CNY|RMB|\$|دلار)?/gi;const lc=mkCur(L);
+ while((m=ar.exec(L))){const s0=m.index+(m[0].length-m[0].trimStart().length),e0=m.index+m[0].trimEnd().length;if(E.some(x=>s0<x.e&&e0>x.s))continue;const n=+m[2].replace(/,/g,'');const cur=mkCur((m[1]||'')+(m[4]||''));
+  const after=L.slice(e0,e0+16);if(/^\s*(?:days?|روز|%|kg|cbm|ton)/i.test(after))continue;if(!cur&&!lc)continue;if(!cur&&n>=1990&&n<=2100)continue;if(n<50||n>200000)continue;A.push({s:s0,e:e0,n,cur:cur||lc||'USD',after})}
+ const used=new Set();return A.map(a=>{let eq=null;const pv0=E.filter(x=>x.e<=a.s&&a.s-x.e<=14&&!used.has(x)&&/^[\s:=@\-–]*(?:US\$|USD|\$|EUR|€|AED|CNY|RMB)?[\s:=]*$/i.test(L.slice(x.e,a.s))).pop();const nx=pv0?null:E.find(x=>x.s>=a.e&&x.s-a.e<=10&&/^\s*(?:\/|per|for|each|\bx\b)/i.test(L.slice(a.e,x.s)));if(pv0)eq=pv0;else if(nx)eq=nx;else{const pv=E.filter(x=>x.e<=a.s&&a.s-x.e<=40&&!used.has(x)).pop();if(pv)eq=pv}if(eq)used.add(eq);return {eq:eq?eq.eq:'40DV',amt:a.n,cur:a.cur,sure:!!eq}})}
+/* free text / e-mail */
+function mkText(t,src='email'){t=fa2(t).replace(/\r/g,'');const out=[];const G={to:'',vendor:'',from:''};
+ const vm=t.match(/valid(?:ity)?\s*(?:till|until|thru|through|to|up to|:)?\s*([^\n;]{4,24})|(?:اعتبار|معتبر)\s*(?:تا|:)\s*([^\n;]{4,24})/i);if(vm)G.to=mkDate(vm[1]||vm[2]);
+ const cm=t.match(/(?:carrier|line|vessel operator|شرکت کشتیرانی|خط)\s*[:：]\s*([^\n,;]{2,40})|\bvia\s+(MSC|Maersk|CMA[\s-]?CGM|COSCO|OOCL|Evergreen|ONE|HMM|Hapag[\s-]?Lloyd|ZIM|Yang ?Ming|PIL|Emirates Shipping|IRISL|Wan Hai|KMTC|SITC)\b/i);if(cm)G.vendor=(cm[1]||cm[2]).trim();
+ const fm=t.match(/^(?:from|sender|از)\s*:\s*(.+)$/im);const sender=fm?fm[1].replace(/<.*?>/,'').trim().slice(0,40):'';let route=null;
+ const lines=t.split(/\n|(?<=\.)\s+(?=[A-Z])/);for(const ln of lines){const L=ln.trim();if(!L)continue;
+  const rm=L.match(new RegExp(MKPORT.source+'(?:\\s*(?:port|,?\\s*china|,?\\s*uae|,?\\s*iran))?\\s*(?:-+|–|—|to|→|->|>|/|تا|به)\\s*'+MKPORT.source,'i'));if(rm)route={pol:rm[1].replace(/\b\w/g,c=>c.toUpperCase()),pod:rm[2].replace(/\b\w/g,c=>c.toUpperCase())};
+  if(!route)continue;const lineTo=(()=>{const m=L.match(/valid[^\d\n]{0,12}([^\n;]{4,24})|اعتبار[^\d\n]{0,8}([^\n;]{4,24})/i);return m?mkDate(m[1]||m[2]):''})();
+  const amts=mkAmts(L);
+  amts.forEach(a=>out.push({mode:mkMode(L),vendor:G.vendor||sender,pol:route.pol,pod:route.pod,eq:a.eq,amt:a.amt,cur:a.cur,from:fwToday(),to:lineTo||G.to,tt:(()=>{const x=L.match(/(?:t\/t|transit|ترانزیت)\D{0,10}(\d{1,3})/i);return x?+x[1]:null})(),note:L.slice(0,120),incl:mkIncl(L),src,conf:.45+(lineTo||G.to?.25:0)+(G.vendor||sender?.15:0)+(a.sure?.15:0)}))}
  const seen=new Set();return out.filter(r=>{const k=[r.pol,r.pod,r.eq,r.amt].join('|');if(seen.has(k))return false;seen.add(k);return true})}
 function mkParse(input,src){if(Array.isArray(input))return mkTable(input,src||'excel')||[];const t=String(input||'');const first=t.split(/\r?\n/).find(x=>x.trim())||'';
  if(/[,;\t]/.test(first)&&first.split(/[,;\t]/).length>=3){try{const T=mkTable(readCsv(t),src||'csv');if(T&&T.length)return T}catch(e){}}return mkText(t,src||'email')}
@@ -1408,6 +1488,28 @@ html.ap-mode .ap-hud .ap-hd .tt b::after{opacity:1;transform:none}
 .ap-rsm div{min-width:0;flex:1}.ap-rsm b{display:block;font-size:12.5px}.ap-rsm small{display:block;font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ap-rsm button{height:30px;padding:0 10px;border:0;border-radius:8px;font:inherit;font-size:11.5px;cursor:pointer;background:var(--panel2);color:var(--text);box-shadow:inset 0 0 0 1px var(--line);flex:none}.ap-rsm .go{background:var(--accent);color:#fff;box-shadow:none}
 @media (max-width:640px){.ap-dec .al{grid-template-columns:1fr}.ap-rsm{bottom:calc(76px + env(safe-area-inset-bottom));flex-wrap:wrap}.ap-rsm small{white-space:normal}}
+/* v15.19: plan dialog, approvals */
+.pl-dlg .pl-q{width:100%;box-sizing:border-box;min-height:74px;resize:vertical;padding:10px 12px;border:0;border-radius:10px;background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line2);color:var(--text);font:inherit;font-size:13px;line-height:1.8}
+.pl-dlg .pl-q:focus{outline:none;box-shadow:inset 0 0 0 1.5px var(--accent)}
+.pl-ex{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.pl-ex button{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;height:26px;padding:0 9px;border:0;border-radius:7px;background:transparent;box-shadow:inset 0 0 0 1px var(--line);color:var(--muted);font:inherit;font-size:11px;cursor:pointer}
+.pl-ex button:hover{color:var(--text);box-shadow:inset 0 0 0 1px var(--line2)}
+.pl-acts0{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 4px}.pl-acts0 small{font-size:11px;color:var(--faint)}
+.pl-go0{height:32px;padding:0 14px;border:0;border-radius:8px;background:var(--accent);color:#fff;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}.pl-go0:disabled{opacity:.6;cursor:wait}
+.pl-ld{padding:12px 0;font-size:12px;color:var(--muted)}.pl-ld .sp{display:inline-block;width:10px;height:10px;border-radius:50%;border:2px solid var(--line2);border-top-color:var(--accent);animation:apSpin .8s linear infinite;vertical-align:middle}
+.pl-miss,.pl-llm{margin:8px 0 0;padding:7px 10px;border-radius:8px;font-size:11.5px;background:color-mix(in srgb,#e0a33a 12%,transparent);color:var(--text)}.pl-llm{background:var(--accent-soft)}
+.pl-dlg select{height:32px;border:0;border-radius:8px;background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line);color:var(--text);font:inherit;font-size:12px;padding:0 8px}
+.pl-st{list-style:none;margin:0;padding:0;display:grid;gap:2px}.pl-st li{display:grid;grid-template-columns:minmax(150px,auto) 1fr;gap:8px;align-items:center;padding:5px 8px;border-radius:8px}
+.pl-st li:hover{background:var(--hover)}.pl-st li.off{opacity:.5}.pl-st label{display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer}.pl-st b{font-weight:600}.pl-st small{font-size:11px;color:var(--muted)}
+.pl-ac{display:grid;gap:4px}.pl-ac label{display:flex;align-items:center;gap:7px;font-size:12px;padding:4px 8px;border-radius:8px;cursor:pointer}.pl-ac label.dis{opacity:.5;cursor:default}.pl-ac small{color:var(--faint)}
+.pl-w:empty{display:none}.pl-wi{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;box-shadow:inset 0 0 0 1px var(--line);margin-bottom:5px}.pl-wi div{flex:1;min-width:0}.pl-wi b{display:block;font-size:12px}.pl-wi small{display:block;font-size:10.5px;color:var(--muted)}
+.pl-wi button,.pl-chk{height:26px;padding:0 9px;border:0;border-radius:7px;background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line);color:var(--text);font:inherit;font-size:11px;cursor:pointer}
+.pl-acts{display:grid;gap:5px}.pl-acts .lb{font-size:10.5px;color:var(--faint)}.pl-acts .lb small{font-size:10px}
+.pl-a{display:flex;align-items:center;gap:6px;padding:7px 9px;border-radius:9px;box-shadow:inset 0 0 0 1px var(--line)}.pl-a div{flex:1;min-width:0}.pl-a b{display:block;font-size:12px}.pl-a small{display:block;font-size:10.5px;color:var(--muted);line-height:1.6}
+.pl-a button{height:26px;padding:0 10px;border:0;border-radius:7px;font:inherit;font-size:11px;cursor:pointer;flex:none;background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line);color:var(--text)}.pl-a button.ok{background:var(--accent);color:#fff;box-shadow:none}
+.pl-a em{font-style:normal;font-size:11px;color:var(--muted);flex:none;max-width:45%;text-align:left}.pl-a[data-st=done] em,.pl-a[data-st=approved] em{color:#3fb27f}.pl-a[data-st=rejected]{opacity:.6}.pl-a[data-st=err] em{color:#e5484d}
+.as-apx[data-pl]{margin-top:6px}
+@media (max-width:640px){.pl-st li{grid-template-columns:1fr}.pl-a{flex-wrap:wrap}.pl-a em{max-width:100%}}
+.ap-dec .rk{grid-template-columns:minmax(0,1fr);justify-items:stretch}.ap-dec .rk li{width:auto;min-width:0;overflow-wrap:anywhere;unicode-bidi:plaintext;text-align:start}
 /* ---------- repeatable processes ---------- */
 .fl-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
 .fl-c{position:relative;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--as-surf2);margin-bottom:0;overflow:hidden;transition:transform .35s var(--as-sp),box-shadow .3s,border-color .25s;animation:apVIn .5s var(--as-sp) both;animation-delay:calc(var(--i,0)*45ms)}
@@ -1637,8 +1739,8 @@ function asThinkHtml(){return `<div class="as-m a think"><span class="av">${ASI.
 function asRender(anim){const B=$('.as-panel .as-msgs');if(!B)return;const P=asPage();
  if(!AS.msgs.length){const S=[...(ASUG[P.view]||[]),'این صفحه را خلاصه و توضیح بده'];const C=asCtxSafe();let i=0;
   const S0=apShip&&apShip();B.innerHTML=`<div class="as-empty"><div class="as-orb2">${ASI.spark}</div><b>چطور می‌توانم کمک کنم؟</b><p>دربارهٔ «${esc(P.title)}» توضیح می‌دهم، در وب جستجو می‌کنم، محاسبه می‌کنم یا فرایند این محموله را خودکار اجرا می‌کنم.</p>
-   <div class="as-sug">${C&&C.R&&!AP.run?`<button class="as-apx" data-ap style="--i:${i++}">${ASI.bolt}<span><b>اجرای خودکار این محموله</b><small>${S0?esc(S0.o.nameFa)+' ← '+esc(S0.d.nameFa)+' · ':''}${fa(APS.length)} مرحله با عامل‌های هوشمند</small></span>${ASI.arrow.replace('<svg','<svg class="ar"')}</button>`:''}<div class="lb">پیشنهادها</div>${S.map(s=>`<button data-q="${esc(s)}" style="--i:${i++}">${ASI.m_explain}<span>${esc(s)}</span>${ASI.arrow.replace('<svg','<svg class="ar"')}</button>`).join('')}<button data-q="120×100×110 × 24 پالت وزن 18000 kg" data-mm="calc" style="--i:${i++}">${ASI.m_calc}<span>حجم و وزن حجمی ۲۴ پالت</span>${ASI.arrow.replace('<svg','<svg class="ar"')}</button><button data-q="آخرین اخبار بندر شهید رجایی" data-mm="search" style="--i:${i++}">${ASI.web}<span>آخرین اخبار بندر شهید رجایی</span>${ASI.arrow.replace('<svg','<svg class="ar"')}</button></div></div>`;
-  $$('[data-q]',B).forEach(b=>b.onclick=()=>asSend(b.dataset.q,b.dataset.mm));const a=$('[data-ap]',B);if(a)a.onclick=()=>{asShow(false);apPre()};return}
+   <div class="as-sug">${C&&C.R&&!AP.run?`<button class="as-apx" data-ap style="--i:${i++}">${ASI.bolt}<span><b>اجرای خودکار این محموله</b><small>${S0?esc(S0.o.nameFa)+' ← '+esc(S0.d.nameFa)+' · ':''}${fa(APS.length)} مرحله با عامل‌های هوشمند</small></span>${ASI.arrow.replace('<svg','<svg class="ar"')}</button>`:''}${!AP.run?`<button class="as-apx" data-pl style="--i:${i++}">${ASI.bolt}<span><b>برنامه‌ریزی محموله با یک جمله</b><small>هدف، محدودیت‌ها و مشخصات بار را بنویسید؛ برنامه را ببینید و اجرا کنید</small></span>${ASI.arrow.replace('<svg','<svg class="ar"')}</button>`:''}<div class="lb">پیشنهادها</div>${S.map(s=>`<button data-q="${esc(s)}" style="--i:${i++}">${ASI.m_explain}<span>${esc(s)}</span>${ASI.arrow.replace('<svg','<svg class="ar"')}</button>`).join('')}<button data-q="120×100×110 × 24 پالت وزن 18000 kg" data-mm="calc" style="--i:${i++}">${ASI.m_calc}<span>حجم و وزن حجمی ۲۴ پالت</span>${ASI.arrow.replace('<svg','<svg class="ar"')}</button><button data-q="آخرین اخبار بندر شهید رجایی" data-mm="search" style="--i:${i++}">${ASI.web}<span>آخرین اخبار بندر شهید رجایی</span>${ASI.arrow.replace('<svg','<svg class="ar"')}</button></div></div>`;
+  $$('[data-q]',B).forEach(b=>b.onclick=()=>asSend(b.dataset.q,b.dataset.mm));const a=$('[data-ap]',B);if(a)a.onclick=()=>{asShow(false);apPre()};const pl=$('[data-pl]',B);if(pl)pl.onclick=()=>{asShow(false);plShow()};return}
  const LA=AS.msgs.map(m=>m.role).lastIndexOf('assistant');B.innerHTML=AS.msgs.map((m,i)=>m.role==='user'?`<div class="as-m u${m.fresh?'':' old'}" ${m.fresh?'':'style="animation:none"'}>${esc(m.content)}</div>`:asMsgHtml(m,i,i===LA)).join('')+(AS.busy?asThinkHtml():'');
  $$('.as-m.a .bd',B).forEach(d=>[...d.children].forEach((c,i)=>c.style.setProperty('--i',Math.min(i,24))));
  $$('.as-sc',B).forEach((c,i)=>c.style.setProperty('--i',i%8));
@@ -2456,206 +2558,54 @@ setTimeout(()=>{if(!window.IFA||!IFA.autopilot)return;const st0=IFA.autopilot.st
  whatIf:async id=>{const f=(AP.finds||[]).find(x=>x.id===id||x.k+'.'+x.id===id);const fn=f&&APWI[f.k+'.'+f.id];return fn?await fn(AP.S||{}):null},
  checkpoint:()=>LSG(APCKK,null),resumeRun:()=>apResume(),recordNow:()=>apRecordNow(),runs:(q='')=>svApi('/api/ap/runs'+(q?'?'+q:'')),run:id=>svApi('/api/ap/run?id='+encodeURIComponent(id))})},700);
 
-setTimeout(()=>{try{asFab()}catch(e){console.error('assistant',e)}if(window.IFA){IFA.assistant={open:()=>asShow(true),close:()=>asShow(false),ask:(q,mode='auto')=>svOn()?svApi('/api/assist',{method:'POST',body:{q,mode,page:asPage()}}):Promise.resolve(asLocal(q,mode)),page:()=>asPage(),calc:q=>calcEval(q)};
- IFA.actuals={show:o=>acShow(o||{}),parse:t=>invParse(t),calib:(l,m)=>acCalib(l,m),accuracy:()=>svApi('/api/actuals/accuracy'),apply:(L,C)=>acApply(L,C)};
- IFA.iran={show:o=>irShow(o||{}),tariff:hs=>irTb(hs),tariffCalc:b=>svApi('/api/tariff/ir/calc',{method:'POST',body:b||{}}),customsFx:()=>irFxSync(true),portCalc:b=>svApi('/api/ports/tariff/calc',{method:'POST',body:b||{}}),channels:()=>svApi('/api/ratech'),poll:()=>svApi('/api/ratech/poll',{method:'POST',body:{}}),ingest:(text,source)=>svApi('/api/ratech/ingest',{method:'POST',body:{text,source}}),destPort:()=>irDestPort()};
- IFA.connectors={status:f=>cnStatus(!!f),show:()=>cnShow(),hs:c=>cnHs(c),hsSearch:q=>cnHsSearch(q),schedules:(f,t,o)=>cnSched(f,t,o),geocode:(q,c)=>cnGeo(q,c)};
- IFA.autopilot={start:(o={})=>apStart(o),stop:()=>{AP.stop=true;AP.pause=false},pause:()=>{AP.pause=true},resume:()=>{AP.pause=false},status:()=>({running:AP.run,paused:!!AP.pause,done:!!AP.done,stage:AP.list&&AP.list[AP.cur]?AP.list[AP.cur][0]:null,stages:{...AP.st},values:AP.vals.map(v=>({key:v.k,label:v.label,value:v.value})),findings:(AP.finds||[]).map(f=>({stage:f.k,id:f.id,severity:f.sev,title:f.t,detail:f.d})),score:AP.done?apScore():null,healed:Object.keys(AP.healed||{})}),history:()=>apHistAll(),brief:()=>AP.done?apBrief():null,dialog:()=>apPre()}}},400);
-
-/* ===== v15.2: live connections — server live hub (FX + free market, road weather, real road km, sanctions lists, holidays) ===== */
-(function(){
-const LV={on:()=>!!svUrl(),get:(p,o={})=>fetch(svUrl()+p,{cache:'no-cache',...o}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}),post:(p,b)=>LV.get(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})};
-/* 1) FX — official cross rates + Iranian free-market rial, applied to the engine automatically */
-const _fxLoad=fxLoad;
-const fxMk=m=>{if(!m||!(m.USD>10000))return;const v=Math.round(m.USD);LSS('ifa-irr',v);LSS('ifa-irr-live',{t:m.ts||Date.now(),src:m.src,USD:m.USD,EUR:m.EUR,AED:m.AED,CNY:m.CNY,TRY:m.TRY,RUB:m.RUB});try{if(FIN.rx.free!==v){FIN.rx.free=v;finSave()}}catch(e){}emit('fx.market',{USD:v,src:m.src})};
-fxLoad=async function(force){if(LSG('ifa-fxurl','')||!LV.on())return _fxLoad(force);if(!force&&FX.d&&FX.d.live&&Date.now()-FX.d.t<10*60e3)return FX.d;FX.busy=true;FX.err='';
- try{const j=await LV.get('/api/live/fx');if(!j.rates||!j.rates.EUR)throw new Error('ساختار پاسخ نامعتبر');FX.d={t:Date.now(),src:'https://'+(j.src||'ifa-live'),upd:j.time_last_update_utc||'',rates:j.rates,market:j.market||null,live:1};LSS('ifa-fx',FX.d);fxMk(j.market);
-  emit('fx.updated',{src:j.src,EUR:j.rates.EUR,CNY:j.rates.CNY});FX.busy=false;return FX.d}catch(e){FX.busy=false;return _fxLoad(force)}};
-/* 2) Roads — live weather alerts on passes/corridors/borders → «محدودیت مسیر و فصل» */
-let RDN=0;async function roadsPull(){if(!LV.on())return;try{const j=await LV.get('/api/live/roads');LSS('ifa-live-roads',{t:j.fetched,points:j.points});
-  const synced=svOn()&&!(SV.st.off||[]).includes('ifa-rtn');if(!synced){const cur=LSG('ifa-rtn',null);const base=Array.isArray(cur)?cur.filter(r=>!String(r&&r.id||'').startsWith('LIVE-')):RTN0.map(x=>({id:rgId(),route:x[0],season:x[1],kind:x[2],note:x[3],src:'نمونه — باید تأیید شود',chk:''}));
-   const nx=JSON.stringify([...j.rows,...base]);if(nx!==JSON.stringify(cur))localStorage.setItem('ifa-rtn',nx)}
-  const hi=j.rows.filter(r=>r.lvl>=3).length;if(hi&&hi!==RDN)toast('⚠ '+fa(hi)+' هشدار جدی جاده (زنده) — عملیات ← حمل‌کنندگان ← محدودیت مسیر');RDN=hi;emit('roads.updated',{alerts:j.rows.length,severe:hi})}catch(e){}}
-/* 3) Routing — real road distances (OSRM/ORS) for domestic trucking & waybills */
-const _dmKm=dmKm;const dmH=fnv(JSON.stringify(DMC.map(c=>[c[0],c[2],c[3]])));let KM=(()=>{const x=LSG('ifa-live-km',null);return x&&x.h===dmH?x:null})();
-dmKm=function(a,c){if(KM&&a!==c){const i=KM.codes.indexOf(a),j=KM.codes.indexOf(c);const v=i>=0&&j>=0&&KM.km[i]&&KM.km[i][j];if(v)return Math.round(v/10)*10}return _dmKm(a,c)};
-window.__ifaKm=()=>KM&&KM.src;
-async function kmPull(){if(!LV.on()||(KM&&Date.now()-KM.t<30*864e5))return;try{const j=await LV.post('/api/live/matrix',{points:DMC.map(c=>[c[2],c[3]])});if(!j.km)return;KM={h:dmH,t:Date.now(),src:j.src,codes:DMC.map(c=>c[0]),km:j.km,min:j.min};LSS('ifa-live-km',KM)}catch(e){}}
-/* 4) Official Iranian holidays → ETA/schedule calendar */
-const _hol=holidays;holidays=function(){if(HOLC)return HOLC;const r=_hol();(LSG('ifa-live-hol',{}).holidays||[]).forEach(h=>{const s=Date.parse(h.a+'T00:00:00Z');if(s)r.push({cs:['IR'],s,e:s+DAY,n:h.n})});return r};
-async function holPull(){if(!LV.on())return;const x=LSG('ifa-live-hol',null);if(x&&Date.now()-x.t<24*3600e3)return;try{const j=await LV.get('/api/live/holidays');if(j.holidays&&j.holidays.length){LSS('ifa-live-hol',{t:Date.now(),src:j.src,holidays:j.holidays});HOLC=null}}catch(e){}}
-/* 5) Sanctions — daily OFAC SDN/Non-SDN + UN + EU from the server (falls back to the built-in snapshot) */
-const _sxLoad=sxLoad;sxLoad=async function(){if(SX)return SX;if(SXP)return SXP;if(!LV.on())return _sxLoad();
- SXP=(async()=>{try{const J=await LV.get('/api/live/sanctions');if(!J||!Array.isArray(J.d)||J.d.length<1000)throw new Error('empty');const extra=LSG('ifa-sx-extra',null);
-   if(extra&&extra.d&&extra.date>J.m.date){J.d=J.d.filter(x=>x[0]!=='O').concat(extra.d);J.m.ofac=extra.date}SX=sxIndex(J);return SX}catch(e){SXP=null;return _sxLoad()}})();return SXP};
-/* scheduler */
-const tick=()=>{if(!LV.on()||document.visibilityState==='hidden')return;fxLoad(true);roadsPull()};
-setTimeout(()=>{if(!LV.on())return;fxLoad(false).then(()=>{const m=FX.d&&FX.d.market;if(m)fxMk(m)});roadsPull();kmPull();holPull()},3500);
-setInterval(tick,10*60e3);setInterval(()=>{kmPull();holPull()},6*3600e3);
-window.__IFA_LIVE={fx:()=>fxLoad(true),roads:roadsPull,km:()=>KM,holidays:()=>LSG('ifa-live-hol',null),status:()=>LV.get('/api/live/status')};
-})();
-
-})();
-</script>
-<script>
-(()=>{
-const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
-const txt=el=>(el?.textContent||'').replace(/\s+/g,' ').trim();
-const LS='ifa-fx',st=Object.assign({noleft:false,noright:false,focus:false,dense:false,dh:null},JSON.parse(localStorage.getItem(LS)||'{}'));
-const save=()=>localStorage.setItem(LS,JSON.stringify(st));
-const I={
-search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
-focus:'<path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4"/>',
-left:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/>',
-right:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/>',
-dense:'<path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>',
-chain:'<circle cx="5" cy="6" r="2.2"/><circle cx="19" cy="6" r="2.2"/><circle cx="12" cy="18" r="2.2"/><path d="M7.2 6h9.6M6.2 8l4.6 8M17.8 8l-4.6 8"/>',
-opt:'<circle cx="5" cy="18" r="2.2"/><circle cx="19" cy="6" r="2.2"/><path d="M7 17c5-1 3-9 10-10"/>',
-cost:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
-load:'<path d="M3 8l9-4 9 4v8l-9 4-9-4z"/><path d="M3 8l9 4 9-4M12 12v8"/>',
-intel:'<ellipse cx="12" cy="5.5" rx="7.5" ry="2.8"/><path d="M4.5 5.5v6c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8v-6M4.5 11.5v6c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8v-6"/>',
-keys:'<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>'};
-const svg=k=>`<svg viewBox="0 0 24 24">${I[k]}</svg>`;
-const root=document.createElement('div');root.className='fx-root';document.body.appendChild(root);
-const isMac=/Mac|iPhone|iPad/.test(navigator.platform);const MOD=isMac?'⌘':'Ctrl';
-
-/* toast */
-const toasts=document.createElement('div');toasts.className='fx-toasts';root.appendChild(toasts);
-const toast=m=>{const t=document.createElement('div');t.className='fx-toast';t.textContent=m;toasts.appendChild(t);setTimeout(()=>t.remove(),2500)};
-
-/* layout state */
-function apply(){const b=document.body.classList;b.toggle('fx-noleft',st.noleft);b.toggle('fx-noright',st.noright);b.toggle('fx-focus',st.focus);b.toggle('fx-dense',st.dense);
- if(st.dh)document.documentElement.style.setProperty('--drawer-h',st.dh+'px');else document.documentElement.style.removeProperty('--drawer-h');
- $$('.fx-tools button[data-k]').forEach(b=>b.classList.toggle('on',!!st[b.dataset.k]));save();
- setTimeout(()=>window.dispatchEvent(new Event('resize')),420);}
-const act={
- focus(){st.focus=!st.focus;apply();toast(st.focus?'حالت تمرکز روی نقشه فعال شد':'حالت تمرکز غیرفعال شد')},
- noleft(){st.noleft=!st.noleft;apply()},noright(){st.noright=!st.noright;apply()},
- dense(){st.dense=!st.dense;apply();toast(st.dense?'نمای فشرده':'نمای عادی')},
- resetH(){st.dh=null;apply();toast('ارتفاع پنل نتایج بازنشانی شد')},
- palette:()=>openPalette(),help:()=>openHelp(),chain:()=>window.__CHAIN&&window.__CHAIN.open(),opt:()=>window.__STUDIO&&window.__STUDIO.open('opt'),cost:()=>window.__STUDIO&&window.__STUDIO.open('cost'),load:()=>window.__STUDIO&&window.__STUDIO.open('load'),intel:()=>window.__STUDIO&&window.__STUDIO.open('intel')};
-
-/* side tools */
-const tools=document.createElement('div');tools.className='fx-tools';
-[['palette','search','جستجوی دستورها',MOD+' K'],['chain','chain','استودیوی زنجیرهٔ فریت فورواردینگ','C'],['opt','opt','بهینه‌ساز مسیر','O'],['cost','cost','هزینهٔ کامل زنجیره','M'],['load','load','چیدمان سه‌بعدی کانتینر','L'],['intel','intel','اطلس داده‌ها','I'],['focus','focus','حالت تمرکز','F'],['noleft','left','نمایش/پنهان لایه‌ها','['],['noright','right','نمایش/پنهان پنل جستجو',']'],['dense','dense','نمای فشرده','D'],['help','keys','میانبرهای صفحه‌کلید','?']].forEach(([k,ic,t,key])=>{
- const b=document.createElement('button');b.innerHTML=svg(ic);b.title=t+' · '+key;b.setAttribute('aria-label',t);if(k in st)b.dataset.k=k;b.onclick=()=>act[k]();tools.appendChild(b)});
-root.appendChild(tools);
-const sbtn=document.createElement('button');sbtn.className='fx-search';sbtn.innerHTML=svg('search')+'<span>جستجو و فرمان…</span><kbd>'+MOD+' K</kbd>';sbtn.onclick=()=>openPalette();root.appendChild(sbtn);
-const rz=document.createElement('div');rz.className='fx-resize';rz.title='برای تغییر ارتفاع بکشید · دوبار کلیک برای بازنشانی';root.appendChild(rz);
-const status=document.createElement('div');status.className='fx-status';root.appendChild(status);
-
-/* position loop */
-let lastSel='';
-function place(){
- const mt=$('.map-tools'),dr=$('.drawer'),tb=$('.topbar .actions'),kp=$('.topbar .kpis');
- if(mt){const r=mt.getBoundingClientRect();tools.style.left=r.left+'px';tools.style.top=(r.bottom+6)+'px';tools.style.display=r.width?'flex':'none'}
- if(tb){const r=tb.getBoundingClientRect();sbtn.style.top=(r.top+(r.height-28)/2)+'px';sbtn.style.left=(r.right+8)+'px';
-   sbtn.style.visibility=innerWidth>1180?'visible':'hidden';
-   if(innerWidth>1180&&kp)kp.style.paddingLeft=(sbtn.offsetWidth+8)+'px'; else if(kp)kp.style.paddingLeft='';}
- if(dr){const r=dr.getBoundingClientRect();const show=!dr.classList.contains('collapsed')&&!st.focus&&innerWidth>860;rz.style.display=show?'flex':'none';rz.style.left=r.left+'px';rz.style.width=r.width+'px';rz.style.top=(r.top-6)+'px';
-   status.style.left=(r.left+4)+'px';status.style.top=(r.top-18)+'px';}
- status.style.display='none';
- requestAnimationFrame(place)}
-requestAnimationFrame(place);
-
-/* drawer resize */
-rz.addEventListener('pointerdown',e=>{e.preventDefault();rz.setPointerCapture(e.pointerId);rz.classList.add('drag');document.body.classList.add('fx-resizing');
- const mv=ev=>{const h=Math.max(150,Math.min(innerHeight*0.7,innerHeight-ev.clientY-10));st.dh=Math.round(h);document.documentElement.style.setProperty('--drawer-h',st.dh+'px')};
- const up=()=>{rz.classList.remove('drag');document.body.classList.remove('fx-resizing');rz.removeEventListener('pointermove',mv);rz.removeEventListener('pointerup',up);save();window.dispatchEvent(new Event('resize'))};
- rz.addEventListener('pointermove',mv);rz.addEventListener('pointerup',up)});
-rz.addEventListener('dblclick',act.resetH);
-
-/* tooltips */
-const tip=document.createElement('div');tip.className='fx-tip';root.appendChild(tip);let tipEl=null,tipT=0;
-document.addEventListener('mouseover',e=>{const el=e.target.closest('[title],[data-fx-title]');if(!el||el===tipEl)return;hideTip();
- const t=el.getAttribute('title')||el.dataset.fxTitle;if(!t)return;el.dataset.fxTitle=t;el.removeAttribute('title');tipEl=el;
- tipT=setTimeout(()=>{tip.textContent=t;tip.classList.add('show');const r=el.getBoundingClientRect(),w=tip.offsetWidth,h=tip.offsetHeight;
-  let x=r.left+r.width/2-w/2,y=r.bottom+6;if(y+h>innerHeight-6)y=r.top-h-6;x=Math.max(6,Math.min(innerWidth-w-6,x));tip.style.left=x+'px';tip.style.top=y+'px'},380)});
-function hideTip(){clearTimeout(tipT);tip.classList.remove('show');if(tipEl&&tipEl.isConnected&&!tipEl.hasAttribute('title'))tipEl.setAttribute('title',tipEl.dataset.fxTitle);tipEl=null}
-document.addEventListener('mouseout',e=>{if(tipEl&&!tipEl.contains(e.relatedTarget))hideTip()});
-document.addEventListener('mousedown',hideTip,true);
-
-/* enrich: KPI flash, route bars, wheel scroll */
-let kpiPrev='';
-const parseMoney=s=>{const m=s.replace(/[٬,]/g,'').match(/[\d.]+/);return m?parseFloat(m[0]):NaN};
-function enrich(){
- const k=$('.kpis');if(k){const v=txt(k);if(kpiPrev&&v!==kpiPrev){$$('.kpi',k).forEach(x=>{x.classList.remove('flash');void x.offsetWidth;x.classList.add('flash')})}kpiPrev=v}
- const cards=$$('.rcard');if(cards.length){const ps=cards.map(c=>parseMoney(txt($('.price',c))));const mx=Math.max(...ps.filter(isFinite));
-  cards.forEach((c,i)=>{if(isFinite(ps[i])&&mx){c.style.setProperty('--pbar',(ps[i]/mx*100).toFixed(1)+'%');if(!c.dataset.fxT){c.dataset.fxT=1}}});}
- const on=$('.rcard.on h3');const sel=on?txt(on):'';if(sel&&sel!==lastSel){lastSel=sel}
- const meta=$('.drawer-meta > span.num');status.textContent='';
- if(cards.length){const i=cards.findIndex(c=>c.classList.contains('on'));status.textContent=(i>=0?`${i+1}/${cards.length}`:'')+'  ←/→  ·  '+MOD+' K'}
- const car=$('.carousel');if(car&&!car.dataset.fxW){car.dataset.fxW=1;car.addEventListener('wheel',e=>{if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){car.scrollLeft-=e.deltaY;e.preventDefault()}},{passive:false})}
-}
-new MutationObserver(()=>{cancelAnimationFrame(enrich._r);enrich._r=requestAnimationFrame(enrich)}).observe(document.getElementById('root'),{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class']});
-
-/* feedback toasts on app actions */
-document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.closest('.fx-root'))return;
- const l=b.getAttribute('aria-label')||b.dataset.fxTitle||b.title||'';
- if(/لینک/.test(l))toast('لینک اشتراک کپی شد');else if(/CSV/.test(l))toast('فایل CSV آماده شد');
- else if(b.matches('.panel .presets .chip'))toast('سناریو بارگذاری شد: '+txt(b));},true);
-
-/* command palette */
-let scrim=null;
-function collect(){const C=[];const add=(g,label,run,ic='›',sub='')=>label&&C.push({g,label,run,ic,sub});
- if(window.__CHAIN){const CH=window.__CHAIN;[['map','نقشهٔ زنجیرهٔ عملیات'],['find','یابندهٔ اجزای زنجیره'],['plan','برنامهٔ اجرایی و مسیر بحرانی'],['docs','چک‌لیست اسناد مسیر'],['dir','ذی‌نفعان و پورتال‌های رسمی مسیر']].forEach(([v,t])=>add('زنجیرهٔ عملیات',t,()=>CH.open(v),'⛓','C'));CH.steps().forEach(st=>add('گام‌های زنجیره','گام '+(st.i+1)+': '+st.t,()=>CH.openStep(st.i),st.on?'●':'○',st.lane))}
- if(window.__STUDIO){const SX=window.__STUDIO;[['opt','بهینه‌ساز مسیر چندمعیاره (پارتو + مونت‌کارلو)','O'],['cost','هزینهٔ کامل زنجیره و ترکیب‌های هزینه','M'],['load','چیدمان سه‌بعدی کانتینر','L'],['intel','اطلس داده‌ها (۶ فایل اکسل)','I']].forEach(([v,t,k])=>add('استودیوی تحلیل',t,()=>SX.open(v),'◆',k));SX.extra().forEach(x=>add(x.g,x.t,x.run,'·',x.sub||''))}
- add('نما','حالت تمرکز روی نقشه',act.focus,'◎','F');add('نما','نمایش/پنهان لایه‌ها',act.noleft,'▏','[');add('نما','نمایش/پنهان پنل جستجو',act.noright,'▕',']');add('نما','نمای فشرده',act.dense,'≡','D');add('نما','بازنشانی ارتفاع نتایج',act.resetH,'↕');add('نما','میانبرهای صفحه‌کلید',act.help,'⌨','?');
- $$('.drawer .tab').forEach((b,i)=>add('نتایج','نمایش '+txt(b),()=>b.click(),'▤',String(i+1)));
- $$('.rcard').forEach(b=>add('مسیرها',txt($('h3',b))+' — '+txt($('.price',b)),()=>{b.click();b.scrollIntoView({behavior:'smooth',inline:'nearest',block:'nearest'})},'↗',txt($('.price+div',b))));
- $$('.panel .presets .chip').forEach(b=>add('سناریوهای آماده',txt(b),()=>b.click(),'✦'));
- $$('.panel .step').forEach(b=>add('پنل جستجو','مرحله: '+txt($('.t',b)),()=>{if(st.noright||st.focus){st.noright=false;st.focus=false;apply()}b.click()},'①'));
- $$('.mode-row[aria-pressed]').forEach(b=>add('لایه‌ها','لایهٔ '+txt(b).replace(/\d+$/,'').trim(),()=>b.click(),'━',b.getAttribute('aria-pressed')==='true'?'روشن':'خاموش'));
- $$('.corr-row').forEach(b=>add('کریدورها',txt(b),()=>b.click(),'⋯'));
- $$('.legend .seg button').forEach(b=>add('سبک نقشه','نقشهٔ '+txt(b),()=>b.click(),'◐'));
- $$('.topbar .seg button').forEach(b=>add('ارز','واحد پول '+txt(b),()=>b.click(),'$'));
- $$('.topbar .icon-btn,.drawer-meta .icon-btn,.map-tools .icon-btn').forEach(b=>{const l=b.getAttribute('aria-label')||b.dataset.fxTitle||b.title||txt(b);add('ابزارها',l,()=>b.click(),'⚙')});
- const pb=$('.play-btn');if(pb)add('پخش',pb.getAttribute('aria-label')||'پخش/توقف',()=>pb.click(),'▶','Space');
- return C}
-const norm=s=>s.toLowerCase().replace(/[ي]/g,'ی').replace(/[ك]/g,'ک').replace(/\u200c/g,' ');
-function score(q,l){if(!q)return 1;l=norm(l);const ws=norm(q).split(/\s+/).filter(Boolean);let s=0;for(const w of ws){const i=l.indexOf(w);if(i<0)return 0;s+=i===0?3:1}return s}
-function hl(l,q){if(!q)return esc(l);let out=esc(l);norm(q).split(/\s+/).filter(Boolean).forEach(w=>{out=out.replace(new RegExp('('+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','i'),'<mark>$1</mark>')});return out}
-const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-function openPalette(){if(scrim)return close();hideTip();const all=collect();scrim=document.createElement('div');scrim.className='fx-scrim';
- scrim.innerHTML=`<div class="fx-pal" role="dialog" aria-label="جستجوی دستورها"><div class="fx-pal-in">${svg('search')}<input placeholder="جستجوی مسیر، سناریو، لایه، کریدور یا دستور…" aria-label="جستجو"><kbd>Esc</kbd></div><div class="fx-list" role="listbox"></div><div class="fx-foot"><span><kbd>↑</kbd><kbd>↓</kbd> حرکت</span><span><kbd>Enter</kbd> اجرا</span><span><kbd>Esc</kbd> بستن</span><span style="margin-inline-start:auto">${all.length} فرمان</span></div></div>`;
- root.appendChild(scrim);const inp=$('input',scrim),list=$('.fx-list',scrim);let items=[],sel=0;
- const render=()=>{const q=inp.value.trim();items=all.map(c=>({...c,s:score(q,c.g+' '+c.label)})).filter(c=>c.s>0&&(q||c.g!=='گام‌های زنجیره'));if(q)items.sort((a,b)=>b.s-a.s);if(q.length>5&&window.__STUDIO&&window.__STUDIO.nlq){try{const N=window.__STUDIO.nlq(q);if(N)items.unshift({g:'پرسش هوشمند',label:N.label,run:N.run,ic:'✦',sub:'Enter',s:999})}catch(e){}}items=items.slice(0,80);sel=Math.min(sel,Math.max(0,items.length-1));
-  if(!items.length){list.innerHTML='<div class="fx-empty">نتیجه‌ای پیدا نشد</div>';return}
-  let g='',h='';items.forEach((c,i)=>{if(c.g!==g&&!q){g=c.g;h+=`<div class="fx-grp">${esc(g)}</div>`}h+=`<div class="fx-it" role="option" data-i="${i}" aria-selected="${i===sel}"><span class="ic">${c.ic}</span><span>${hl(c.label,q)}</span><span class="sub">${q?esc(c.g)+' · ':''}${c.sub&&c.sub.length<4?'<kbd>'+esc(c.sub)+'</kbd>':esc(c.sub)}</span></div>`});list.innerHTML=h};
- const mark=()=>{$$('.fx-it',list).forEach(e=>e.setAttribute('aria-selected',+e.dataset.i===sel));$(`.fx-it[data-i="${sel}"]`,list)?.scrollIntoView({block:'nearest'})};
- const run=i=>{const c=items[i];if(!c)return;close();setTimeout(()=>c.run(),30)};
- inp.oninput=()=>{sel=0;render()};
- inp.onkeydown=e=>{if(e.key==='ArrowDown'){sel=Math.min(items.length-1,sel+1);mark();e.preventDefault()}else if(e.key==='ArrowUp'){sel=Math.max(0,sel-1);mark();e.preventDefault()}else if(e.key==='Enter'){run(sel);e.preventDefault()}else if(e.key==='Escape'){close();e.preventDefault()}};
- list.onmousemove=e=>{const it=e.target.closest('.fx-it');if(it&&+it.dataset.i!==sel){sel=+it.dataset.i;mark()}};
- list.onclick=e=>{const it=e.target.closest('.fx-it');if(it)run(+it.dataset.i)};
- scrim.onmousedown=e=>{if(e.target===scrim)close()};render();inp.focus()}
-function close(){scrim?.remove();scrim=null}
-function openHelp(){if(scrim)return close();const K=(...k)=>k.map(x=>`<kbd>${x}</kbd>`).join('');
- scrim=document.createElement('div');scrim.className='fx-scrim';scrim.innerHTML=`<div class="fx-help"><h3>میانبرهای صفحه‌کلید</h3><dl>
- <dt>استودیوی زنجیرهٔ عملیات</dt><dd>${K('C')}</dd><dt>بهینه‌ساز مسیر / هزینهٔ کامل</dt><dd>${K('O')} ${K('M')}</dd><dt>چیدمان کانتینر / اطلس داده</dt><dd>${K('L')} ${K('I')}</dd><dt>جستجوی دستورها</dt><dd>${K(MOD,'K')} ${K('/')}</dd><dt>حالت تمرکز روی نقشه</dt><dd>${K('F')}</dd><dt>پنهان کردن لایه‌ها / پنل جستجو</dt><dd>${K('[')} ${K(']')}</dd>
- <dt>نمای فشرده</dt><dd>${K('D')}</dd><dt>تب‌های نتایج</dt><dd>${K('1')}–${K('4')}</dd><dt>مسیر قبلی / بعدی</dt><dd>${K('←')} ${K('→')}</dd>
- <dt>پخش / توقف سفر</dt><dd>${K('Space')}</dd><dt>تغییر تم</dt><dd>${K('T')}</dd><dt>بزرگ‌نمایی / کوچک‌نمایی</dt><dd>${K('+')} ${K('−')}</dd><dt>بستن</dt><dd>${K('Esc')}</dd></dl></div>`;
- scrim.onmousedown=()=>close();root.appendChild(scrim)}
-
-/* shortcuts */
-document.addEventListener('keydown',e=>{
- if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openPalette();return}
- if(scrim){if(e.key==='Escape')close();return}
- const t=e.target;if(t.closest&&t.closest('input,textarea,select,[contenteditable=true]'))return;if(e.metaKey||e.ctrlKey||e.altKey)return;
- const k=e.key;let h=true;
- if(k==='/'){openPalette()}else if(k==='f'||k==='F'||k==='ف'){act.focus()}else if(k==='['){act.noleft()}else if(k===']'){act.noright()}
- else if(k==='d'||k==='D'){act.dense()}else if(k==='?'){openHelp()}
- else if(/^[1-4]$/.test(k)){const b=$$('.drawer .tab')[+k-1];if(b){b.click();const d=$('.drawer.collapsed');}}
- else if(k==='ArrowLeft'||k==='ArrowRight'){const c=$$('.rcard');if(!c.length){h=false}else{let i=c.findIndex(x=>x.classList.contains('on'));i=(i+(k==='ArrowLeft'?1:-1)+c.length)%c.length;c[i].click();c[i].scrollIntoView({behavior:'smooth',inline:'nearest',block:'nearest'})}}
- else if(k===' '){const p=$('.play-btn');if(p)p.click();else h=false}
- else if(k==='t'||k==='T'){const b=$('.topbar [aria-label="تغییر تم"]');b?b.click():h=false}
- else if(k==='+'||k==='='){$('.map-tools [aria-label="بزرگ‌نمایی"]')?.click()}else if(k==='-'){$('.map-tools [aria-label="کوچک‌نمایی"]')?.click()}
- else if(k==='Escape'&&st.focus){act.focus()}else h=false;
- if(h)e.preventDefault()});
-apply();
-})();
-
-</script>
-<script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script>
-</body>
-</html>
+/* ---------- v15.19: goal-based planning from one sentence, editable plan preview, actions with approval, post-run watch ---------- */
+const PLW={cost:{cost:.65,days:.15,risk:.2},time:{cost:.2,days:.6,risk:.2},risk:{cost:.25,days:.15,risk:.6},bal:{cost:.45,days:.3,risk:.25}};
+const PLG={bal:'متعادل',cost:'کمترین هزینه',time:'سریع‌ترین',risk:'کمترین ریسک'};
+const PLEQ={'20GP':['20DV',33],'40GP':['40DV',67],'40HC':['40HC',76],'20RF':['20RF',28],'40RF':['40RF',59]};
+const PLCK=[['پمپ|ماشین|دستگاه|تجهیزات|موتور|کمپرسور|machine|pump|equipment','machinery'],['قطعات خودرو|لوازم یدکی|خودرو|auto part','auto'],['الکترونیک|موبایل|گوشی|لپ.?تاپ|کامپیوتر|electronic','electronics'],['فولاد|آهن|ورق|میلگرد|steel','steel'],['پارچه|نساجی|پوشاک|نخ|textile','textile'],['شیمیایی|chemical','chemicals'],['پلیمر|گرانول|polymer','polymer'],['دارو|پزشکی|pharma|medical','pharma'],['غذا|برنج|چای|خوراکی|food','food']];
+const PLACT={route:'انتخاب مسیر پیشنهادی روی نقشه',records:'ثبت پرونده، پیشنهاد قیمت، رزرو، فاکتور و اظهارنامه (پیش‌نویس)',rfq:'آماده‌سازی استعلام قیمت از فورواردرها (ارسال با شما)',watch:'پایش پس از اجرا: نرخ حمل، نرخ ارز گمرکی و آخرین موعد حرکت'};
+const plN=s=>{try{return nnorm(String(s||''))}catch(e){return String(s||'').toLowerCase()}};
+const plK=(n,u)=>+n*(/هزار|k/i.test(u||'')?1e3:/میلیون|m/i.test(u||'')?1e6:1);
+function plParse(text){const C=asCtxSafe();const t=plN(text);const P={text,goal:'bal',parts:[],miss:[]};
+ const nf_=s=>{if(!C||!s)return null;const ph=plN(s),w=s.split(/\s+/);const ok=n=>{const a=plN(n.nameFa).replace(/^(بندر|مرز|ایستگاه|فرودگاه)\s+/,'').replace(/\s*\(.*$/,''),e=plN((n.nameEn||'').split(/[\s(]/)[0]);return (a&&ph.includes(a))||(e&&ph.includes(e))};for(const k of [3,2,1]){if(w.length>=k){const n=nodeFind(C,w.slice(0,k).join(' '));if(n&&ok(n))return n}}return nodeFind(C,w[0])};
+ const m=t.match(/(?:از|from)\s+(.+?)\s+(?:به|تا|to)\s+(.+?)(?=[،,.؛\n]|\s+(?:با|برای|حداکثر|ظرف|زیر|کمتر|بودجه|ارزش|اینکوترمز|ارزان|سریع|امن|کم|\d)|$)/)||t.match(/(\S+(?:\s\S+)?)\s*(?:←|->|→)\s*(\S+(?:\s\S+)?)/);
+ if(m){P.o=nf_(m[1]);P.d=nf_(m[2]);if(!P.o)P.miss.push('مبدأ «'+m[1]+'»');if(!P.d)P.miss.push('مقصد «'+m[2]+'»')}else P.miss.push('مبدأ و مقصد');
+ const q=t.match(/(\d+)\s*(?:×|x|\*|تا|عدد|دستگاه)?\s*(?:کانتینر|container|cntr)?\s*(20|40|45)\s*(?:فوت|ft|'|’|ی)?\s*(hc|hq|های.?کیوب|rf|یخچالی|reefer|gp|dv|dc|استاندارد)?/i)||t.match(/(\d+)\s*(?:کانتینر|container)/i);
+ if(q){P.qty=+q[1];if(q[2]){const h=/hc|hq|کیوب/i.test(q[3]||''),r=/rf|یخچال|reefer/i.test(q[3]||'');P.eq=(q[2]==='20'?'20':'40')+(r?'RF':h?'HC':'GP');if(q[2]==='45')P.eq='40HC'}P.ship='FCL'}
+ if(/\blcl\b|خرده\s?بار|بار\s?جزئی/i.test(t))P.ship='LCL';if(/هوایی|\bair\b/i.test(t))P.ship='AIR';if(/کامیون|تریلی|\bftl\b/i.test(t))P.ship='FTL';
+ const w=t.match(/(\d+(?:\.\d+)?)\s*(تن|ton|tonne|کیلو(?:گرم)?|kg)(?![a-z])/i);if(w)P.kg=Math.round(+w[1]*(/تن|ton/i.test(w[2])?1000:1));
+ const v=t.match(/(\d+(?:\.\d+)?)\s*(?:cbm|متر\s?مکعب|m3)/i);if(v)P.cbm=+v[1];
+ const vl=t.match(/(?:ارزش|value)(?:\s*کالا)?\s*[:：]?\s*\$?\s*(\d+(?:\.\d+)?)\s*(هزار|k|میلیون|m)?/i);if(vl)P.value=plK(vl[1],vl[2]);
+ const bg=t.match(/(?:بودجه|سقف\s*هزینه|حداکثر\s*هزینه|budget)\s*[:：]?\s*\$?\s*(\d+(?:\.\d+)?)\s*(هزار|k|میلیون|m)?/i);if(bg)P.budget=plK(bg[1],bg[2]);
+ const dy=t.match(/(?:حداکثر|ظرف|زیر|کمتر\s*از|تا|within|max|under)\s*(\d+)\s*(?:روز|day)/i);if(dy)P.days=+dy[1];
+ const ic=t.match(/\b(exw|fca|fas|fob|cfr|cif|cpt|cip|dap|dpu|ddp)\b/i);if(ic)P.inc=ic[1].toUpperCase();
+ const hs=t.match(/(?:hs|کد\s*(?:تعرفه|hs)|اچ\s*اس)\s*[:：]?\s*(\d{4,10})/i);if(hs)P.hs=hs[1];
+ if(/ارزان|کم\s?هزینه|کمترین\s*هزینه|cheap|lowest cost/i.test(t))P.goal='cost';else if(/سریع|فوری|عجله|fast|urgent|quick/i.test(t))P.goal='time';else if(/امن|کم\s?ریسک|مطمئن|safe|low risk/i.test(t))P.goal='risk';
+ const cu=String(text).match(/(?:مشتری|برای\s+شرکت|customer)\s*[:：]?\s*([^،,.\n]+?)(?=\s*(?:[،,.\n]|$))/i);if(cu)P.cust=cu[1].trim().slice(0,60);
+ for(const [re,k] of PLCK){const mm=String(text).match(new RegExp('('+re+')[^،,.\\n]{0,24}','i'));if(mm){P.com=k;P.desc=mm[0].replace(/\s+(از|به|با|برای)\s.*$/,'').trim().slice(0,50);break}}
+ return P}
+async function plLLM(P){if(!svOn())return P;try{const r=await svApi('/api/ap/intake',{method:'POST',body:{text:P.text}});if(!r||!r.llm||!r.fields)return P;const f=r.fields,C=asCtxSafe();P.llm=true;
+  const nd=s=>s&&C?nodeFind(C,s):null;if(!P.o&&f.from)P.o=nd(f.from)||P.o;if(!P.d&&f.to)P.d=nd(f.to)||P.d;
+  [['qty','qty'],['kg','kg'],['cbm','cbm'],['value','value'],['inc','inc'],['hs','hs'],['days','days'],['budget','budget'],['cust','cust'],['desc','desc']].forEach(([a,b])=>{if(!P[a]&&f[b])P[a]=f[b]});
+  if(!P.eq&&/^(20|40)(GP|HC|RF)$/.test(f.eq))P.eq=f.eq;if(!P.ship&&['LCL','AIR','FTL'].includes(f.eq))P.ship=f.eq;if(P.goal==='bal'&&f.goal)P.goal=f.goal;if(P.o&&P.d)P.miss=P.miss.filter(x=>!/مبدأ|مقصد/.test(x))}catch(e){}return P}
+/* stage plan with reasons */
+function plStages(P){const ir=P.d&&P.d.country==='IR',sea=P.ship!=='AIR'&&P.ship!=='FTL';const R={
+ intake:[1,'خواندن درخواست و مشخصات'],route:[1,'هدف «'+PLG[P.goal]+'» وزن‌های بهینه‌ساز را تعیین می‌کند'],live:[1,'کرایه با دادهٔ روز برای مقایسه با مدل'],landed:[1,'هزینهٔ کامل'+(P.budget?' برای سنجش بودجهٔ '+usd(P.budget):'')],
+ load:[P.ship!=='AIR'?1:0,P.ship==='AIR'?'برای حمل هوایی لازم نیست':'تعداد و پرشدگی کانتینر'+(P.qty?' (درخواست: '+fa(P.qty)+' × '+(P.eq||'')+')':'')],
+ tariff:[ir?1:0,ir?'واردات به ایران: حقوق ورودی، مجوزها و کد HS':'مقصد خارج از ایران'],ins:[1,'حق بیمهٔ باربری'],sanc:[1,P.cust?'غربال «'+P.cust+'»':'نام طرف‌ها وارد نشده؛ غربال محدود خواهد بود'],
+ risk:[1,'ماتریس ریسک مسیر'],dd:[sea&&ir?1:0,sea&&ir?'برآورد دموراژ بندر مقصد':'مسیر دریایی به بندر ایران ندارد'],dom:[ir?1:0,ir?'حمل داخلی تا مقصد نهایی':'—'],
+ scen:[1,'مقایسهٔ همهٔ مسیرها با هدف و محدودیت‌های شما'+(P.days||P.budget?' ('+[P.days?'≤ '+fa(P.days)+' روز':'',P.budget?'≤ '+usd(P.budget):''].filter(Boolean).join('، ')+')':'')],
+ rfq:[1,'پیش‌نویس استعلام (بدون ارسال)'],job:[0,'به‌صورت اقدام نیازمند تأیید پیشنهاد می‌شود'],quote:[0,'به‌صورت اقدام نیازمند تأیید'],bkg:[0,'به‌صورت اقدام نیازمند تأیید'],docs:[0,'به‌صورت اقدام نیازمند تأیید'],cus:[0,'به‌صورت اقدام نیازمند تأیید'],track:[0,'پس از تأیید رزرو'],final:[1,'جمع‌بندی و کارت تصمیم']};
+ return APS.map(s=>({k:s[0],n:s[1],on:!!(R[s[0]]||[1])[0],why:(R[s[0]]||[1,''])[1],lock:s[0]==='intake'||s[0]==='final'}))}
+/* apply to the map sidebar (same controls a user would use) */
+const plSleep=ms=>new Promise(r=>setTimeout(r,ms));
+function plSetV(el,v){if(!el)return false;const pr=el.tagName==='SELECT'?HTMLSelectElement.prototype:HTMLInputElement.prototype;Object.getOwnPropertyDescriptor(pr,'value').set.call(el,String(v));el.dispatchEvent(new Event(el.tagName==='SELECT'?'change':'input',{bubbles:true}));el.dispatchEvent(new Event('blur',{bubbles:true}));return true}
+const plLab=l=>{const L=[...document.querySelectorAll('label')].find(x=>x.offsetParent&&!x.closest('.apx-pre,.sx-wrap,.as-panel,.ap-hud')&&x.textContent.trim().startsWith(l));return L?L.parentElement.querySelector('input,select'):null};
+const plTab=re=>{const b=[...document.querySelectorAll('button')].find(x=>x.offsetParent&&re.test(x.textContent.replace(/\s+/g,' ')));if(b)b.click();return !!b};
+async function plOD(lbl,n){const i=document.querySelector('input[role=combobox][aria-label="'+lbl+'"]');if(!i||!n)return false;i.focus();plSetV(i,n.nameFa);await plSleep(450);const O=[...document.querySelectorAll('[role=option]')].filter(e=>e.offsetParent);const o=O.find(e=>(e.querySelector('.nm')||e).textContent.trim()===n.nameFa)||O[0];if(!o)return false;['pointerdown','mousedown','pointerup','mouseup','click'].forEach(t=>o.dispatchEvent(new (t.startsWith('pointer')?PointerEvent:MouseEvent)(t,{bubbles:true,cancelable:true,view:window})));await plSleep(300);i.blur();return true}
+async function plApply(P){const bad=[];if(typeof wrap!=='undefined'&&wrap&&typeof close==='function'){try{close()}catch(e){}await plSleep(300)}
+ const mob=innerWidth<760;if(mob)try{const sh=document.querySelector('.drawer');if(sh)sh.classList.add('open')}catch(e){}
+ plTab(/01\s*مسیر|مسیر\s*01/);await plSleep(200);if(P.o&&!(await plOD('مبدأ',P.o)))bad.push('مبدأ');if(P.d&&!(await plOD('مقصد',P.d)))bad.push('مقصد');
+ if(P.ship){const T={FCL:'FCL',LCL:'LCL',AIR:'هوایی',FTL:'FTL'}[P.ship];const b=[...document.querySelectorAll('button')].find(x=>x.offsetParent&&x.textContent.trim()===T);if(b)b.click();else bad.push('نوع حمل')}
+ if(plTab(/02\s*بار|بار\s*02/)){await plSleep(350);const set=(l,v,nm)=>{if(v==null||v==='')return;if(!plSetV(plLab(l),v))bad.push(nm)};
+  if(P.com)set('نوع کالا',P.com,'نوع کالا

@@ -13,5 +13,5 @@ rep("['routes','کریدورها'],","['flow','فرایندهای تکرارپذ
 rep("routes:agRoutes,","routes:agRoutes,flow:agFlows,")
 rep(" else if(sheet)e.stopImmediatePropagation()},true);"," else if(sheet&&!(typeof AP!=='undefined'&&AP.run))e.stopImmediatePropagation()},true);")
 rep(" if(wrap)e.stopImmediatePropagation()},true);"," if(wrap&&!(typeof AP!=='undefined'&&AP.run))e.stopImmediatePropagation()},true);")
-rep("IFA={version:'15.9.3',","IFA={version:'15.22.0',")
+rep("IFA={version:'15.9.3',","IFA={version:'15.23.0',")
 open(p,'w',encoding='utf8').write(s);print('ASSIST_OK')

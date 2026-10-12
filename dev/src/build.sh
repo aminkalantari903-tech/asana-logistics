@@ -7,6 +7,7 @@ python3 src/patch_p3.py
 python3 src/patch_dom.py
 python3 src/patch_agent.py
 python3 src/patch_brand.py
+python3 src/patch_logo.py
 python3 src/patch_open.py
 python3 src/asst/mk_css.py
 python3 src/patch_assist.py

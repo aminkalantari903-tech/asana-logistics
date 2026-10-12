@@ -2,14 +2,14 @@
  "index": {
   "path": "public/index.html",
   "parts": 18,
-  "sha256": "341ad924bf56513fdeb5a7b88c79c546635056dbc867e550c983b4b8605ba54f",
-  "bytes": 9782432
+  "sha256": "caf7c91daab32217fd1d82f259652525ea4c290b4322515d7fce07c029624023",
+  "bytes": 9947812
  },
  "binaries": [
   {
    "path": "public/favicon.ico",
    "file": "bundle/bin/public__favicon.ico.b64",
-   "sha256": "321d4b72c5ccdb53ca28c0f031afbe4d2e55e172da820d2b4ed2a5f7be64db18"
+   "sha256": "3460f0858a36931769f04be6a0f9af8003282e9870fe1e67b1918dd40d540951"
   },
   {
    "path": "public/fonts/inter-4ee8fc98.woff2",
@@ -64,32 +64,32 @@
   {
    "path": "public/icons/icon-192.png",
    "file": "bundle/bin/public__icons__icon-192.png.b64",
-   "sha256": "c8dfb81121b69007774f6d66c2a215960aa86697640a4881d8c5de8e5620b063"
+   "sha256": "ca6e63f8726262b485d5cbefa5f3fd65642a43cbea5204c0f89506b9bfafd676"
   },
   {
    "path": "public/icons/icon-512.png",
    "file": "bundle/bin/public__icons__icon-512.png.b64",
-   "sha256": "9d897828b59c8462d6c1469357960ff0517a5cc7990b20ad488f7c98645a4b79"
+   "sha256": "4fb267f7183771b4485310981f377de7bd3efd4ba888b7fbc9e446d656f5bf29"
   },
   {
    "path": "public/icons/apple-touch-icon.png",
    "file": "bundle/bin/public__icons__apple-touch-icon.png.b64",
-   "sha256": "fe21a901435b8b58cc1a3e3e3f19a55da13f48f0d9c112792f049bef210a8c18"
+   "sha256": "1c19e19842c4450afea566878318a84e01eedeb6469d9f64cdf3f48794b6475c"
   },
   {
    "path": "public/icons/maskable-512.png",
    "file": "bundle/bin/public__icons__maskable-512.png.b64",
-   "sha256": "235a56325cb9be39c63dbe16b247c9122cfb61820bc2c4b3779b9526e3c1fce7"
+   "sha256": "815c26042e9d22e866b0b5947caa3e72b4bb7020d97e6a55b20a5a6a36f4e63e"
   },
   {
    "path": "public/icons/maskable-192.png",
    "file": "bundle/bin/public__icons__maskable-192.png.b64",
-   "sha256": "a4c2b42f9f23bcddf34579ed08ec1739e8c5a3e7abae70f75f7665d52d3fc24e"
+   "sha256": "17b1281946ed40d87f0c7f1a745b903adc4a030dde7c84a2bdd94490a1a3b809"
   },
   {
    "path": "public/icons/asana-mark-1024.png",
    "file": "bundle/bin/public__icons__asana-mark-1024.png.b64",
-   "sha256": "52de86cb7fe639849c64b14c466081b444707296872c1c041fb8a68772abc30d"
+   "sha256": "0c52f30522525ba68bedcc7aff3df276bc517cbc3cefe97481640e5f4bf613e0"
   }
  ]
 }
